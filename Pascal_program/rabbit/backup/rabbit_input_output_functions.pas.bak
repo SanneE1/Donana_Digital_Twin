@@ -1,0 +1,245 @@
+unit rabbit_input_output_functions;
+
+{$mode ObjFPC}{$H+}
+
+interface
+
+uses
+  Classes, SysUtils,
+  general_functions, general_define_units;
+
+procedure ReadClim;
+procedure ReadParameters_Rabbit(paramname: string);
+procedure GetAbundanceMap(total_pop: MapOfLists; filename: string; year, month: integer);
+procedure WritePopsizeMap(filename: string; var Poplist: MapOfLists; dimx, dimy: integer);
+procedure WriteArrayToFile(const FileName: string; const arr: array of Integer);
+function GetTotalSize(const population_list: MapOfLists): Integer;
+
+implementation
+
+procedure ReadClim;
+var
+ C: TextFile;
+ Line, Parts: string;
+ SplitParts: array of string;
+ i, value, RowY, ColX: integer;
+
+begin
+
+SetLength(BreedingMonths_xy, Mapdimx + 1, Mapdimy + 1, 13);
+SetLength(DryMonths_xy, Mapdimx + 1, Mapdimy + 1, 13);
+
+//Assign(filename, breedname);
+//reset(filename);
+
+ breedname := ExpandFileName(climate_folder + 'breeding_months_' + IntToStr(current_year) + '.txt');
+
+ //WriteLn('Reading Breeding months file: ' + breedname);
+
+ AssignFile(C, breedname);
+ Reset(C);
+ 
+ while not EOF(C) do
+  begin
+    ReadLn(C, Line);
+
+    SplitParts := Line.Split([' ']);
+    if SplitParts[0] = 'col' then Continue;
+    
+    ColX := StrToInt(SplitParts[0]);
+    RowY := StrToInt(SplitParts[1]);
+    
+    if (ColX > Mapdimx) or (RowY > Mapdimy) then
+      ShowErrorAndExit('There are more columns/rows in the breeding month file than in the map. Map dim X/Y: ' + IntToStr(MapdimX) + '/' + IntToStr(MapdimY) + 'and file X/Y: ' + IntToStr(ColX) + '/' + IntToStr(RowY));
+    
+    SetLength(BreedingMonths_xy[ColX,RowY], 13);
+    
+    for i := 2 to 13 do
+    begin
+      if i > High(SplitParts) then Break;
+      value := StrToInt(SplitParts[i]);
+      BreedingMonths_xy[ColX][RowY][i - 1] := value;
+    end;
+  end;
+  
+  CloseFile(C);
+  
+ dryname := ExpandFileName(climate_folder + 'consecutive_dry_months_' + IntToStr(current_year) + '.txt');
+
+ //WriteLn('Reading consecutive dry months file: ' + dryname);
+
+ AssignFile(C, dryname);
+ Reset(C);
+ 
+ while not EOF(C) do
+  begin
+    ReadLn(C, Line);
+
+    SplitParts := Line.Split([' ']);
+    if SplitParts[0] = 'col' then Continue;
+    
+    ColX := StrToInt(SplitParts[0]);
+    RowY := StrToInt(SplitParts[1]);
+    
+    if (ColX > Mapdimx) or (RowY > Mapdimy) then
+      ShowErrorAndExit('There are more columns/rows in the Consecutive dry months file than in the map. Check your parameter file to make sure the map files and the climate files match in spatial scale');
+    
+    SetLength(DryMonths_xy[ColX,RowY], 13);
+    
+    for i := 2 to 13 do
+    begin
+      if i > High(SplitParts) then Break;
+      value := StrToInt(SplitParts[i]);
+      DryMonths_xy[ColX][RowY][i - 1] := value;
+    end;
+  end;
+  
+  CloseFile(C);
+
+end;
+
+procedure ReadParameters_Rabbit(paramname: string);
+var
+  LineSplit: TStringArray;
+  Line: string;
+  r, spacePos: integer;
+  a, param: string;
+  value: real;
+begin
+
+ Assign(filename, ExpandFileName(paramname));
+  reset(filename);
+
+  while not EOF(filename) do
+  begin
+    ReadLn(filename, Line);
+    LineSplit := Line.Split(' ');
+
+    if (LineSplit[0] = 'max_age') then R_max_age := StrToInt(LineSplit[1])
+    else if (LineSplit[0] = 'young_age') then R_young_age := StrToInt(LineSplit[1])
+    else if (LineSplit[0] = 'adult_age') then R_adult_age := StrToInt(LineSplit[1])
+    else if (LineSplit[0] = 'old_age') then R_old_age := StrToInt(LineSplit[1])
+    else if (LineSplit[0] = 'disp_age') then R_disp_age := StrToInt(LineSplit[1])
+    else if (LineSplit[0] = 'MeanLitSize') then R_MeanLitSize := StrToFloat(LineSplit[1])
+    else if (LineSplit[0] = 'SdLitSize') then R_SdLitSize := StrToFloat(LineSplit[1])
+    else if (LineSplit[0] = 'r_int') then R_r_int := StrToFloat(LineSplit[1])
+    else if (LineSplit[0] = 'r_dens_effect') then R_r_dens_effect := StrToFloat(LineSplit[1])
+    else if (LineSplit[0] = 'r_second_effect') then R_r_second_effect := StrToFloat(LineSplit[1])
+    else if (LineSplit[0] = 'r_later_effect') then R_r_later_effect := StrToFloat(LineSplit[1])
+    else if (LineSplit[0] = 'RHDFreq_L') then RHDFreq_L := StrToInt(LineSplit[1])
+    else if (LineSplit[0] = 'RHDFreq_U') then RHDFreq_U := StrToInt(LineSplit[1])
+    else if (LineSplit[0] = 'RHDMort_L') then RHDMort_L := StrToFloat(LineSplit[1])
+    else if (LineSplit[0] = 'RHDMort_U') then RHDMort_U := StrToFloat(LineSplit[1])
+    else if (LineSplit[0] = 'MortP_at_month_old') then R_MortP_at_month_old := StrToFloat(LineSplit[1])
+    else if (LineSplit[0] = 's_int') then R_s_int := StrToFloat(LineSplit[1])
+    else if (LineSplit[0] = 's_extra_juv') then R_s_extra_juv := StrToFloat(LineSplit[1])
+    else if (LineSplit[0] = 's_dens_effect') then R_s_dens_effect := StrToFloat(LineSplit[1])
+    else if (LineSplit[0] = 's_food_effect') then R_s_food_effect := StrToFloat(LineSplit[1])
+    else if (LineSplit[0] = 'lambda') then R_lambda := StrToFloat(LineSplit[1])
+    else if (LineSplit[0] = 'dens_opt') then R_dens_opt := StrToInt(LineSplit[1])
+    else if (LineSplit[0] = 'sigma') then R_sigma := StrToFloat(LineSplit[1])
+    else if (LineSplit[0] = 'mapname_rabbit') then mapname_rabbit := LineSplit[1]
+    else if (LineSplit[0] = 'climate_folder') then climate_folder := LineSplit[1]
+   end;
+
+end;
+
+procedure GetAbundanceMap(total_pop: MapOfLists; filename: string; year, month: integer);
+var
+  csvFile: TextFile;
+  temp_pop: TList;
+  a, x, y: integer;
+begin
+  AssignFile(csvFile, filename);
+
+  if (year = start_year) and (month = 1) then
+    begin
+    Rewrite(csvFile);
+    // Write header
+    WriteLn(csvFile, 'Year,Month,N_individuals');
+    end
+  else append(csvFile);
+
+  a := 0;
+
+  // Write data for each individual
+  for x := 1 to MapdimX do
+  for y := 1 to MapdimY do
+  begin
+    temp_pop := RabbitPopulationSpatial[x][y];
+
+    if (temp_pop <> nil) then
+     if (temp_pop.Count > 0) then
+      a := a + temp_pop.Count;
+  end;
+
+  WriteLn(csvFile, year, ',', month, ',', a);
+
+  CloseFile(csvFile);
+end;
+
+
+procedure WritePopsizeMap(filename: string; var Poplist: MapOfLists; dimx, dimy: integer);
+var
+  ix, iy, p: integer;
+  outfile: Text;
+begin
+  Assign(outfile, filename);
+  rewrite(outfile);
+
+  // Loop over the arrayData and write each element to the CSV
+  for iy := 1 to dimy do
+  begin
+    for ix := 1 to dimx do
+    begin
+     if Poplist[ix, iy] <> nil then p := Poplist[ix,iy].Count
+     else p := 0;
+      // Write each value, followed by a comma, except for the last value in the row
+      if ix < dimx then
+        Write(outfile, p, ',')
+      else
+        Write(outfile, p);  // No comma at the end of the row
+    end;
+    writeln(outfile);  // Move to the next line in the CSV file
+  end;
+
+  Close(outfile);
+end;
+
+
+function GetTotalSize(const population_list: MapOfLists): Integer;
+var
+  i, j: Integer;
+  TotalCount: Integer;
+begin
+  TotalCount := 0;
+  for i := 1 to High(population_list) do
+    for j := 1 to High(population_list[i]) do
+      if Assigned(population_list[i][j]) then
+        TotalCount := TotalCount + population_list[i][j].Count;
+
+  Result := TotalCount;
+end;
+
+procedure WriteArrayToFile(const FileName: string; const arr: array of Integer);
+var
+  FileStream: TFileStream;
+  i: Integer;
+  Line: string;
+begin
+  // Create or overwrite the file
+  FileStream := TFileStream.Create(FileName, fmCreate);
+  try
+    for i := 0 to High(arr) do
+    begin
+      Line := IntToStr(arr[i]) + sLineBreak;  // Convert integer to string with newline
+      FileStream.Write(Line[1], Length(Line)); // Write to file efficiently
+    end;
+  finally
+    FileStream.Free; // Ensure the file is closed properly
+  end;
+end;
+
+
+end.
+

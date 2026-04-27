@@ -1,0 +1,169 @@
+unit rabbit_population_dynamics_cmd;
+
+{$mode ObjFPC}{$H+}
+
+interface
+
+uses
+  Classes, SysUtils,
+  rabbit_define_units, rabbit_input_output_functions, rabbit_vital_rates;
+
+procedure Startpopulation_rabbit;
+procedure Pop_dynamics;
+procedure RunPopSim;
+
+implementation
+
+
+procedure Startpopulation_rabbit;
+var
+  a, x, y: integer;
+begin
+  SetLength(spatial_population, Mapdimx + 1, Mapdimy + 1);
+  SetLength(RabbitMap, MapDimX + 1, MapDimY + 1);
+
+  population := TList.Create;
+
+  for x := 1 to Mapdimx do
+  for y := 1 to Mapdimy do
+  begin
+
+  if HabitatMap[x,y] = 0 then Continue;
+
+  if HabitatMap[x,y] = 1 then kCapacity := kCapacity_low;
+  if HabitatMap[x,y] = 2 then kCapacity := kCapacity_high;
+
+  spatial_population[x][y] := TList.Create;
+
+  with spatial_population[x][y] do
+  begin
+    for a := 1 to Round(kCapacity) * 25 do
+    begin
+      new(Individual);
+
+      Individual^.age := random(12);  //alternative: Individual^.age:=0;
+      if random<0.5 then Individual^.sex:='f' else Individual^.sex:='m';
+      Individual^.Pregnant:=False;
+
+      spatial_population[x][y].add(Individual);
+
+    end;
+  end;
+
+  end;
+end;
+
+procedure Pop_dynamics;
+var
+  a, b, m, x, y: integer;
+
+begin
+
+  begin
+    for a := 1 to max_years do
+    begin
+      m := 0;  // Start the year
+      while m < 12 do //Let's pretend there's no such thing as leap years
+      begin
+        m := m + 1;
+
+        for x := 1 to MapdimX do
+        for y := 1 to MapdimY do
+        begin
+
+          if HabitatMap[x,y] = 0 then Continue;
+
+          if HabitatMap[x,y] = 1 then kCapacity := kCapacity_low;
+          if HabitatMap[x,y] = 2 then kCapacity := kCapacity_high;
+
+          population := spatial_population[x][y];
+          populationsize := population.Count;
+
+         nbadmonths:= DryMonths_xy[x,y, m+(12*(a-1))];
+
+        Kdensity:=(populationsize)/kCapacity;
+        // Zulima's code has (populationsize/5)/kCapacity - but that's because reporting was done at a 5ha scale
+        // Currently in the code, by only using populationsize, we're not calculating # of individuals in the cell, but the Density (#Rabbits/ha)
+        // We have a resolution of 25ha per cell (500x500 m). If we want to calculate the total number of rabbits, we need to divide popsize by 25, as well as the dens variable in the dispersal
+        // Currently however, that makes the model too big to run on my laptop, so I'm first going to see how the calibration goes with #Rabbits/ha
+        // Using density instead of abundance, does mean the individual cells are more suceptable to stochasticity
+
+        if BreedingMonths_xy[x,y,m+(12*(a-1))] = 1 then reproduction;   //call procedure for reproduction
+        populationsize := population.Count;
+
+        survival;       //call procedure for survival - This needs Kdensity and nbadmonths
+
+        {Aging}
+        populationsize := population.Count;
+        if populationsize > 0 then
+        with population do
+          for b := 0 to populationsize - 1 do
+        begin
+          Individual := Items[b];
+          Individual^.Age := Individual^.Age + 1;
+        end;
+
+      end;
+        {With the whole spatial population, start distribution}
+         Dispersal;
+
+      if not MCMC_PARAMETER_SELECTION_RUN then
+      GetAbundanceMap(spatial_population, 'output_data/Yearly_census_ind.csv', n_sim, a, m);
+
+      if MCMC_PARAMETER_SELECTION_RUN then
+      if (a > 20) and (m = 8) then
+      WriteMCMCoutput(a,m, mcmc_file_location);
+
+    end;
+
+      if not MCMC_PARAMETER_SELECTION_RUN then
+      if (a mod 5 = 0) then
+      WritePopsizeMap(('output_data/Population_distribution_' + IntToStr(a) + '.csv'), spatial_population, mapdimX, mapdimy);
+
+  end;
+
+end;
+
+end;
+
+procedure RunPopSim;
+var
+  a, b: integer;
+  t: string;
+begin
+  randomize; {initialize the pseudorandom number generator}
+  ReadParameters(paramname);
+
+  readmap(mapname);
+  readclim(breedname, dryname);
+
+  {AssignFile(to_file_out, 'total_population_sizes.txt');
+  rewrite(to_file_out); {create txt file}
+  }
+  check_disp_count := 0;
+
+  for current_sim := 1 to n_sim do
+  begin
+
+    max_pop_size := 0;
+    Startpopulation_rabbit; {call the procedure to initialize your population}
+    Pop_dynamics;    {call the procedure to run the population dynamics}
+
+    {save the results to a text file}
+    {append(to_file_out);
+    for b := 1 to max_years do
+      writeln(to_file_out, current_sim, ' ', b, ' ', pop_size[b]);
+
+    CloseFile(to_file_out);
+    }
+
+    {Write dispersal check to text file}
+    //WriteArrayToFile('output_data/dispersal_check.txt', check_disp);
+
+
+  end;
+
+end;
+
+end.
+

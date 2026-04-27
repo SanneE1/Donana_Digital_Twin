@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="12"/>
+    <ManyBuildModesSelection Value="Debug,Release,Release_Linux,Release_MacOS_aarch64,Release_MacOS_intel"/>
+    <BuildModes Active="Debug"/>
+    <Units>
+      <Unit>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Rabbit_population_simulation"/>
+        <TopLine Value="61"/>
+        <CursorPos X="37" Y="76"/>
+        <UsageCount Value="200"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Model_cmd.lpr"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="46"/>
+        <CursorPos X="15" Y="75"/>
+        <UsageCount Value="70"/>
+      </Unit>
+      <Unit>
+        <Filename Value="general_define_units.pas"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="32"/>
+        <CursorPos X="37" Y="44"/>
+        <UsageCount Value="100"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="lynx\lynx_input_output_functions.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos Y="19"/>
+        <FoldState Value=" T3I0{c3 pj6m40mT"/>
+        <UsageCount Value="70"/>
+      </Unit>
+      <Unit>
+        <Filename Value="lynx\lynx_dispersal_assist_functions.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="427"/>
+        <CursorPos X="78" Y="449"/>
+        <UsageCount Value="70"/>
+      </Unit>
+      <Unit>
+        <Filename Value="lynx\lynx_population_dynamics.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="84"/>
+        <CursorPos X="3" Y="111"/>
+        <UsageCount Value="70"/>
+      </Unit>
+      <Unit>
+        <Filename Value="rabbit\rabbit_population_dynamics.pas"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="71"/>
+        <CursorPos X="11" Y="13"/>
+        <UsageCount Value="100"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="rabbit\rabbit_vital_rates.pas"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="80"/>
+        <CursorPos X="35" Y="92"/>
+        <UsageCount Value="100"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\lazarus\fpc\3.2.2\source\rtl\objpas\sysutils\sysstrh.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="188"/>
+        <CursorPos X="10" Y="196"/>
+        <UsageCount Value="3"/>
+      </Unit>
+      <Unit>
+        <Filename Value="general_functions.pas"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="9"/>
+        <CursorPos X="34" Y="11"/>
+        <UsageCount Value="60"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="rabbit\rabbit_input_output_functions.pas"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="64"/>
+        <CursorPos X="55" Y="67"/>
+        <UsageCount Value="60"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="population_dynamics.pas"/>
+        <UnitName Value="Population_dynamics"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="28" Y="9"/>
+        <UsageCount Value="3"/>
+      </Unit>
+    </Units>
+    <JumpHistory HistoryIndex="29">
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="115" TopLine="81"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="116" TopLine="82"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="118" TopLine="84"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="119" TopLine="85"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="121" TopLine="87"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="122" TopLine="88"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="124" TopLine="90"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="125" TopLine="91"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="126" TopLine="92"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="127" TopLine="93"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="128" TopLine="94"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="130" TopLine="96"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="132" TopLine="98"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="133" TopLine="99"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="134" TopLine="100"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="128" TopLine="100"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="130" TopLine="100"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="132" TopLine="100"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="133" TopLine="100"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="155" Column="59" TopLine="131"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="150" Column="15" TopLine="146"/>
+      </Position>
+      <Position>
+        <Filename Value="general_define_units.pas"/>
+        <Caret Line="45" Column="42" TopLine="32"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="27" Column="17" TopLine="20"/>
+      </Position>
+      <Position>
+        <Filename Value="rabbit\rabbit_vital_rates.pas"/>
+        <Caret Line="9" Column="42"/>
+      </Position>
+      <Position>
+        <Filename Value="rabbit\rabbit_vital_rates.pas"/>
+        <Caret Line="92" Column="19" TopLine="80"/>
+      </Position>
+      <Position>
+        <Filename Value="general_functions.pas"/>
+        <Caret Line="24" Column="44" TopLine="6"/>
+      </Position>
+      <Position>
+        <Filename Value="rabbit\rabbit_vital_rates.pas"/>
+        <Caret Line="92" Column="35" TopLine="80"/>
+      </Position>
+      <Position>
+        <Filename Value="general_functions.pas"/>
+        <Caret Line="11" Column="34" TopLine="9"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="58" Column="23" TopLine="44"/>
+      </Position>
+      <Position>
+        <Filename Value="Rabbit_calibration.lpr"/>
+        <Caret Line="38" TopLine="20"/>
+      </Position>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode="default">
+        <Mode Name="default">
+          <local>
+            <CommandLineParams Value="test_output 2014 2024 C:\\Users\\z1512834z\\Documents\\02_ICOM\\02_ForecastingChallenge\\donanadt-shinyapp\\data\\rabbit\\Rabbit_demography_values.txt C:\\Users\\Z15128~1\\AppData\\Local\\Temp\\RtmpUpUVfX\\file24801d1e33/1/habitat_folder/2014_01.txt C:\\Users\\Z15128~1\\AppData\\Local\\Temp\\RtmpUpUVfX\\file24801d1e33/1/habitat_folder C:\\Users\\z1512834z\\Documents\\02_ICOM\\02_ForecastingChallenge\\donanadt-shinyapp\\data\\rabbit\\climate_historic_COP 0 32 0.138717519004328 0.214057544639121"/>
+            <WorkingDirectory Value="C:\Users\z1512834z\Documents\02_ICOM\01_Digital_twin\Rabbit_forecast_DT"/>
+          </local>
+        </Mode>
+      </Modes>
+    </RunParams>
+    <HistoryLists>
+      <List Name="LaunchingApplication" Type="File" Count="1">
+        <Item1 Value="C:\windows\system32\cmd.exe /C ${TargetCmdLine}"/>
+      </List>
+      <List Name="CommandLineParameters" Count="14">
+        <Item1 Value="test_output 2014 2024 C:\\Users\\z1512834z\\Documents\\02_ICOM\\02_ForecastingChallenge\\donanadt-shinyapp\\data\\rabbit\\Rabbit_demography_values.txt C:\\Users\\Z15128~1\\AppData\\Local\\Temp\\RtmpUpUVfX\\file24801d1e33/1/habitat_folder/2014_01.txt C:\\Users\\Z15128~1\\AppData\\Local\\Temp\\RtmpUpUVfX\\file24801d1e33/1/habitat_folder C:\\Users\\z1512834z\\Documents\\02_ICOM\\02_ForecastingChallenge\\donanadt-shinyapp\\data\\rabbit\\climate_historic_COP 0 32 0.138717519004328 0.214057544639121"/>
+        <Item2 Value="C:\\Users\\Z15128~1\\AppData\\Local\\Temp\\RtmpUpUVfX\\file24801d1e33/sim_1_1 2014 2024 C:\\Users\\z1512834z\\Documents\\02_ICOM\\02_ForecastingChallenge\\donanadt-shinyapp\\data\\rabbit\\Rabbit_demography_values.txt C:\\Users\\Z15128~1\\AppData\\Local\\Temp\\RtmpUpUVfX\\file24801d1e33/1/habitat_folder/2014_01.txt C:\\Users\\Z15128~1\\AppData\\Local\\Temp\\RtmpUpUVfX\\file24801d1e33/1/habitat_folder C:\\Users\\z1512834z\\Documents\\02_ICOM\\02_ForecastingChallenge\\donanadt-shinyapp\\data\\rabbit\\climate_historic_COP 0 32 0.138717519004328 0.214057544639121"/>
+        <Item3 Value=".\data\model_input\Parameters_historic_calibration.txt temp_folder 13 0.38 2.5 data\model_input\maps\Rabbit_HabitatMap_500_Donana_Fordham_2013.txt temp_folder\1\habitat_folder"/>
+        <Item4 Value=".\data\model_input\Parameters_historic_calibration.txt temp_abc_folder 5 0.1 0.1 data\model_input\maps\Rabbit_HabitatMap_500_Donana_Fordham_2013.txt temp_abc_folder\habitat_folder"/>
+        <Item5 Value="Pascal_program/input_data/Parameters_test_runs_donana_CK.txt Pascal_program/output_dir_test 5 0.5 2.5"/>
+        <Item6 Value="Pascal_program/input_data/Parameters_test_runs_donana_CK.txt Pascal_program/output_dir_test 5 0.5 2.5 command_line_mapname command_line_folder"/>
+        <Item7 Value="Pascal_program/input_data/Parameters_test_runs_donana_CK.txt Pascal_program/output_dir_test"/>
+        <Item8 Value="Pascal_program/input_data/Parameters_test_runs_donana_historical.txt Pascal_program/output_dir_test"/>
+        <Item9 Value="Pascal_program/input_data/Parameters_test_runs_donana_historical.txt Pascal_program/output_dir_Rabbit"/>
+        <Item10 Value="Pascal_program/input_data/Parameters_rabbit_solo.txt Pascal_program/output_dir_Rabbit"/>
+        <Item11 Value="input_data/Parameters_rabbit_solo.txt output_dir_Rabbit"/>
+        <Item12 Value="../input_data/Parameters_rabbit_solo.txt output_dir_Rabbit"/>
+        <Item13 Value="input_data/Parameters_rabbit_calibration.txt output_dir_Rabbit"/>
+        <Item14 Value="input_data/Parameters_rabbit_calibration.txt output_dir_Rabbit 69 0.54 0.15 0.19 0.87"/>
+      </List>
+      <List Name="WorkingDirectory" Type="File" Count="4">
+        <Item1 Value="C:\Users\z1512834z\Documents\02_ICOM\01_Digital_twin\Rabbit_forecast_DT"/>
+        <Item2 Value="C:\Users\z1512834z\Documents\01_Natura_Connect\03_Rabbit_forecast\Rabbit_forecast_DT"/>
+        <Item3 Value="C:\Users\z1512834z\Documents\01_Natura_Connect\03_Rabbit_forecast\Rabbit_forecast_iberian"/>
+        <Item4 Value="C:\Users\z1512834z\Documents\01_Natura_Connect\00_Lynx_Rabbit_model\Lynx_Rabbit_SIBM"/>
+      </List>
+    </HistoryLists>
+  </ProjectSession>
+  <Debugging>
+    <BreakPoints>
+      <Item>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="lynx\lynx_input_output_functions.pas"/>
+        <Line Value="106"/>
+      </Item>
+      <Item>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="lynx\lynx_input_output_functions.pas"/>
+        <Line Value="108"/>
+      </Item>
+    </BreakPoints>
+    <Watches>
+      <Item>
+        <Expression Value="R_lambda"/>
+      </Item>
+      <Item>
+        <Expression Value="R_dens_opt"/>
+      </Item>
+      <Item>
+        <Expression Value="R_sigma"/>
+      </Item>
+      <Item>
+        <Expression Value="habitat_folder"/>
+      </Item>
+      <Item>
+        <Expression Value="mapname_rabbit"/>
+      </Item>
+      <Item>
+        <Expression Value="paramname_rabbit"/>
+      </Item>
+    </Watches>
+  </Debugging>
+</CONFIG>
