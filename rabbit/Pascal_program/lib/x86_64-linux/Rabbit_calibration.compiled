@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Compiler Value="C:\lazarus\fpc\3.2.2\bin\x86_64-win64\fpc.exe" Date="1525897257"/>
+  <Params Value="-Tlinux -Px86_64 -MObjFPC -Scghi -CX -Cg -O3 -XX -l -vewnhibq -FiC:\Users\z1512834z\Documents\02_ICOM\01_Digital_twin\Donana_Digital_Twin\Pascal_program\lib\x86_64-linux -FuC:\Users\z1512834z\Documents\02_ICOM\01_Digital_twin\Donana_Digital_Twin\Pascal_program\ -FuC:\Users\z1512834z\Documents\02_ICOM\01_Digital_twin\Donana_Digital_Twin\Pascal_program\lynx -FuC:\Users\z1512834z\Documents\02_ICOM\01_Digital_twin\Donana_Digital_Twin\Pascal_program\rabbit -FUC:\Users\z1512834z\Documents\02_ICOM\01_Digital_twin\Donana_Digital_Twin\Pascal_program\lib\x86_64-linux\ -FEC:\Users\z1512834z\Documents\02_ICOM\01_Digital_twin\Donana_Digital_Twin\Pascal_program\programs\ -oC:\Users\z1512834z\Documents\02_ICOM\01_Digital_twin\Donana_Digital_Twin\Pascal_program\programs\Rabbit_x86_64-linux Rabbit_calibration.lpr"/>
+  <Complete Value="False"/>
+</CONFIG>

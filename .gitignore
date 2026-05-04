@@ -1,7 +1,15 @@
-data/
-results/
+*/data/
+*/results/
+
+rabbit/data/
+rabbit/results/
+
+ndvi/data/
+ndvi/results/
+
 Documents/
 
+*.Rproj
 
 # History files
 .Rhistory

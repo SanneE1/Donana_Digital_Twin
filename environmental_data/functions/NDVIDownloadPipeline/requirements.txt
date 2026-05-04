@@ -1,0 +1,11 @@
+geopandas
+pystac-client
+planetary-computer
+odc-stac
+xarray
+dask[complete]
+netcdf4
+zarr
+rioxarray
+matplotlib
+requests
