@@ -16,6 +16,8 @@ import xarray as xr
 
 import config
 
+import pipeline
+
 OUTPUT_PLOTS_DIR = os.path.join(config.OUTPUT_DIR, "plots")
 
 
@@ -177,8 +179,15 @@ def main():
         choices=["netcdf", "zarr"],
         help="Which output store to load (default: netcdf)",
     )
+    parser.add_argument(
+        "--output-dir", default=None, metavar="DIR",
+        help="Output directory (default: from config.py)",
+    )
+    
     args = parser.parse_args()
-
+    if args.output_dir is not None:
+        config.OUTPUT_DIR = args.output_dir
+    
     os.makedirs(OUTPUT_PLOTS_DIR, exist_ok=True)
     print(f"Loading NDVI from {args.source}...")
     ndvi = load_ndvi(args.source)

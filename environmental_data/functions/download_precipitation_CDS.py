@@ -24,7 +24,7 @@ request = {
   "data_format": "GRIB",
   "area": [45.3831869151541, -11.8091501887745, 34.7325737729313, 4.24153981962996]
 }
-target = "data\original_data\CDS\precipitation.grib"
+target = "environmental_data\data\CDS\precipitation.grib"
 
 
 client = cdsapi.Client()

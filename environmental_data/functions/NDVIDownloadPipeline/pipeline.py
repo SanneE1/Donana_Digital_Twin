@@ -3,16 +3,15 @@ Sentinel-2 NDVI data cube pipeline.
 
 AOI extraction → STAC search → load → cloud mask → NDVI → export.
 """
+
 import argparse
 import os
-import pyproj
-
-print(pyproj.datadir.get_data_dir())
-os.environ["PROJ_NETWORK"] = "OFF"
-os.environ["PROJ_LIB"] = pyproj.datadir.get_data_dir()
-os.environ["PROJ_DATA"] = pyproj.datadir.get_data_dir()
-
 import rasterio
+# Use rasterio's bundled PROJ data, not pyproj's
+_rasterio_proj = os.path.join(os.path.dirname(rasterio.__file__), "proj_data")
+if os.path.isdir(_rasterio_proj):
+    os.environ["PROJ_DATA"] = _rasterio_proj
+    os.environ["PROJ_LIB"] = _rasterio_proj
 
 import sys
 import logging
@@ -28,8 +27,8 @@ import rioxarray  # noqa: F401 — registers .rio accessor on xarray objects
 import xarray as xr
 from odc.stac import load as odc_load
 
-#import ndvi.python.NDVIDownloadPipeline.config as config
 import config
+
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(message)s")
 log = logging.getLogger(__name__)
@@ -258,7 +257,16 @@ def export(ndvi: xr.DataArray):
     for fmt in formats:
         if fmt == "netcdf":
             path = os.path.join(config.OUTPUT_DIR, "ndvi.nc")
-            ndvi.to_netcdf(path)
+            ndvi.to_netcdf(
+                path,
+                encoding={
+                    "time": {
+                        "dtype": "float64",
+                        "units": "days since 1970-01-01",
+                        "calendar": "standard",
+                    }
+                },
+            )
             log.info(f"Exported NetCDF → {path}")
 
         elif fmt == "zarr":

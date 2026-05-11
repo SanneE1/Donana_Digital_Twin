@@ -17,7 +17,7 @@ SHAPEFILE_PATH = next(
 )
 
 # ── Temporal range ───────────────────────────────────────────────────────────
-DATE_RANGE = "2023-06-01/2023-06-30"
+DATE_RANGE = "2023-06-01/2023-07-30"
 
 # ── Cloud cover threshold (%) for STAC pre-filter ───────────────────────────
 # Set to None to disable scene-level cloud filtering (fetch all scenes).
