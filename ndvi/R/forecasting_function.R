@@ -10,7 +10,7 @@ load_stack_with_time <- function(tif_path, time_path) {
 }
 
 
-forecast_ndvi_raster_multivar <- function(
+forecast_ndvi_raster <- function(
     model_dir,
     climate_type = "years",
     climate_years = c(2015, 2016),

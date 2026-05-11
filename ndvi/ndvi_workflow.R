@@ -10,6 +10,7 @@ library(zoo)
 
 env_dir = file.path("environmental_data/data")
 output_dir = file.path("ndvi", "results", "model_info")
+pred_dir = file.path("ndvi", "results", "predictions")
 ndvi_path = file.path(env_dir, "ndvi.tif")
 template_path = file.path(env_dir, "template_raster_500.tif")
 krig_path = file.path(env_dir, "CDS")
@@ -102,38 +103,59 @@ saveRDS(time(rast_list$precip_stack), file.path(output_dir, "precip_time.rds"))
 #-------------------------------------------------------------------------------
 
 
-ndvi_forecast <- forecast_ndvi_raster_multivar(
+ndvi_forecast <- forecast_ndvi_raster(
   model_dir = output_dir, 
   climate_type = "mean",
   stochastic = FALSE
 )
 
+writeRaster(ndvi_forecast, file = "ndvi/results/predictions/NDVI_mean_climate.tif")
+
 ndvi_mean <- global(ndvi_forecast, fun = "mean", na.rm = TRUE)
 ndvi_mean$time <- time(ndvi_forecast)
+ndvi_mean$type <- "mean"
 
 
-
-pred_df <- lapply(as.list(1:10), function(x) {
-  ndvi_forecast <- forecast_ndvi_raster_multivar(
+pred_df1 <- lapply(as.list(1:10), function(x) {
+  ndvi_forecast <- forecast_ndvi_raster(
     model_dir = output_dir, 
-    climate_years = c(2015, 2016),
+    climate_years = c(2007, 2008),
     stochastic = TRUE
   )
   ndvi_df <- global(ndvi_forecast, fun = "mean", na.rm = TRUE)
   ndvi_df$time <- time(ndvi_forecast)
   return(ndvi_df)
-}) %>% bind_rows(.id = "rep")
+}) %>% bind_rows(.id = "rep") %>%
+  mutate(type = "cold-wet")
+
+
+pred_df2 <- lapply(as.list(1:10), function(x) {
+  ndvi_forecast <- forecast_ndvi_raster(
+    model_dir = output_dir, 
+    climate_years = c(2022, 2023),
+    stochastic = TRUE
+  )
+  ndvi_df <- global(ndvi_forecast, fun = "mean", na.rm = TRUE)
+  ndvi_df$time <- time(ndvi_forecast)
+  return(ndvi_df)
+}) %>% bind_rows(.id = "rep") %>%
+  mutate(type = "hot-dry")
+
+pred_df <- bind_rows(ndvi_mean, pred_df1, pred_df2)
 
 
 ggplot() +
-  geom_line(data = pred_df, aes(x = time, y = mean, group = rep), colour = "green2") +
-  geom_line(data = ndvi_mean,aes(x = time, y = mean), colour = "black" ) +
+  geom_line(data = pred_df, aes(x = time, y = mean, group = interaction(rep, type), colour = type)) +
+  scale_colour_manual(name = "Climate",
+                      values = c("blue", "red", "black")) +
+  ylab("Mean NDVI") +
   theme_minimal()
 
 
-
-
-
-
+# ggplot() +
+#   geom_spatraster(data = ndvi_forecast[[36]]) + 
+#   scale_fill_viridis_c() +
+#   ggtitle("Predicted NDVI", subtitle = paste(as.character(time(ndvi_forecast[[36]])), "mean climate"))
+# 
 
 
