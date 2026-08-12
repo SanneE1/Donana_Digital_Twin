@@ -21,9 +21,9 @@ basic_eval <- function() {
     geom_histogram(bins = 50) +
     theme_minimal() + ggtitle("Residual distribution")
   
-  eval2 <- ggplot(test, aes(x = pred, y = residual)) +
+  eval2 <- ggplot(test, aes(x = max_ndvi, y = pred)) +
     geom_point(alpha = 0.1) +
-    geom_hline(yintercept = 0, color = "red") +
+    geom_abline(intercept = 0, slope = 1, color = "red") +
     theme_minimal() + ggtitle("Predicted vs Residual")
   
   
@@ -38,7 +38,7 @@ basic_eval <- function() {
     theme_minimal() +
     scale_color_manual(name = "data",
                        values = c("red", "blue")) +
-    labs(title = "Temporal dynamics: observed vs predicted")
+    labs(title = "Temporal dynamics")
   
   spatial_error <- test[, .(
     rmse = sqrt(mean((max_ndvi - pred)^2))
@@ -50,16 +50,13 @@ basic_eval <- function() {
     geom_spatraster(data = r_err) +
     scale_fill_viridis_c() +
     theme_minimal() +
-    labs(title = "Spatial distribution of rmse")
+    labs(title = "Spatial distribution\nof rmse")
   
   plot1 <- eval1 + eval2 + eval3 + eval4 + plot_layout(ncol = 2)
   
   
   importance <- xgb.importance(model = model)
   print(importance)
-  
-  xgb.plot.importance(importance)
-  
   
   coeff_list <- list(
     "ndvi_lag1", "ndvi_lag3", "ndvi_lag12",
@@ -88,24 +85,28 @@ basic_eval <- function() {
        ylab("Predicted NDVI") + 
        theme_minimal()) +
     (ggplot(data = parts_list[[4]]) +
-       geom_line(aes(x = ndvi_max3, y = yhat), color = "darkred", linewidth = 1) +
-       ylab("Predicted NDVI") + 
-       theme_minimal()) +
-    (ggplot(data = parts_list[[5]]) +
        geom_line(aes(x = ndvi_max3_lag1, y = yhat), color = "darkred", linewidth = 1) +
        ylab("Predicted NDVI") + 
        theme_minimal()) +
-    (ggplot(data = parts_list[[6]]) +
+    (ggplot(data = parts_list[[5]]) +
        geom_line(aes(x = temp, y = yhat), color = "darkred", linewidth = 1) +
        ylab("Predicted NDVI") + 
        theme_minimal()) +
-    (ggplot(data = parts_list[[7]]) +
+    (ggplot(data = parts_list[[6]]) +
        geom_line(aes(x = precip, y = yhat), color = "darkred", linewidth = 1) +
        ylab("Predicted NDVI") + 
-       theme_minimal())  +
+       theme_minimal()) +
     plot_layout(ncol = 2)
   
+  ggsave(plot1, filename = file.path(model_dir, "model_evaluation_plot1.png"), 
+         width = 4, height = 4)
+  ggsave(plot2, filename = file.path(model_dir, "model_evaluation_plot2.png"), 
+         width = 4, height = 4)
+  ggsave(xgb.ggplot.importance(importance), filename = file.path(model_dir, "model_evaluation_plot3.png"), 
+         width = 2, height = 2)
+  
   return(list(plot_residuals = plot1,
-              plot_partial = plot2))
+              plot_partial = plot2,
+              coef_importance = importance))
   
 }

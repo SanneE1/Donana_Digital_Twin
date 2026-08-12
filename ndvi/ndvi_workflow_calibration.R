@@ -8,25 +8,32 @@ library(lubridate)
 library(xgboost)     
 library(zoo)         
 
-env_dir = file.path("environmental_data/data")
-output_dir = file.path("ndvi", "results", "model_info")
-pred_dir = file.path("ndvi", "results", "predictions")
+
+# Settings
+test_data_prop = 0.2
+
+env_dir = file.path("data", "environmental_data")
+output_dir = file.path("ndvi", "results")
+
+model_dir = file.path(output_dir, "model_info")
+pred_dir = file.path(output_dir, "predictions")
+
 ndvi_path = file.path(env_dir, "ndvi.tif")
 template_path = file.path(env_dir, "template_raster_500.tif")
 krig_path = file.path(env_dir, "CDS")
-precip_path = file.path(env_dir, "CDS", "precipitation.grib")
+precip_path = file.path(env_dir, "CDS", "precipitation.nc")
 
-source(file.path("ndvi", "R", "quick_model_eval.R"))
-source(file.path("ndvi", "R", "create_model_dataframe.R"))
-source(file.path("ndvi", "R", "forecasting_function.R"))
+sapply(list.files(file.path("ndvi", "functions"), full.names = T), source)
 
-if(!dir.exists(output_dir)) { dir.create(output_dir) }
-
+if(!dir.exists(output_dir)) { dir.create(output_dir, recursive = T) }
+if(!dir.exists(pred_dir)) { dir.create(pred_dir, recursive = T) }
+if(!dir.exists(model_dir)) { dir.create(model_dir, recursive = T) }
 
 #-------------------------------------------------------------------------------
 # Load data  
 #-------------------------------------------------------------------------------
 template_rast <- rast(template_path)
+ndvi_files <- list.files(ndvi_path)
 
 rast_list <- create_model_rasters(template = template_rast, 
                                   ndvi_file = ndvi_path, 
@@ -38,6 +45,11 @@ model_data <- create_model_dataframe(ndvi_stack = rast_list$ndvi_stack,
                                      temp_stack = rast_list$temp_stack, 
                                      precip_stack = rast_list$precip_stack)
 
+n_years_test <- round((max(model_data$year) - min(model_data$year)) * test_data_prop)
+cut_off_year <- max(model_data$year) - n_years_test
+
+cat('\nUsing the last ', n_years_test, 'years for the test data, everything before', 
+    cut_off_year, 'will be used to train the model')
 
 #-------------------------------------------------------------------------------
 # TRAIN MODEL - gradient boosted decision tree model
@@ -50,8 +62,8 @@ features <- c(
   "temp", "precip"
 )
 
-train <- model_data[year < 2018]
-test  <- model_data[year >= 2018]
+train <- model_data[year < cut_off_year]
+test  <- model_data[year >= cut_off_year]
 
 dtrain <- xgb.DMatrix(data = as.matrix(train[, ..features]), 
                       label = train$max_ndvi)
@@ -71,20 +83,20 @@ model <- xgb.train(
 # Quick evaluation of model metrics
 #-------------------------------------------------------------------------------
 
-# model_plots <- basic_eval()
+model_plots <- basic_eval()
 
 #-------------------------------------------------------------------------------
-# save model for easier forecasting later on
+# save model for forecasting later on
 #-------------------------------------------------------------------------------
 
 # model
-xgb.save(model, file.path(output_dir, "ndvi_xgb_model.json"))
+xgb.save(model, file.path(model_dir, "ndvi_xgb_model.json"))
 
 # residuals
 preds <- predict(model, as.matrix(train[, ..features]))
 residuals <- train$max_ndvi - preds
 
-saveRDS(residuals, file.path(output_dir, "residuals.rds"))
+saveRDS(residuals, file.path(model_dir, "residuals.rds"))
 
 # input data
 writeRaster(rast_list$ndvi_stack, file.path(output_dir, "ndvi_stack.tif"), overwrite = TRUE)
@@ -99,63 +111,35 @@ saveRDS(time(rast_list$precip_stack), file.path(output_dir, "precip_time.rds"))
 
 
 #-------------------------------------------------------------------------------
-# FORECAST
+# Save climate objects for forecasts
 #-------------------------------------------------------------------------------
 
-
-ndvi_forecast <- forecast_ndvi_raster(
-  model_dir = output_dir, 
-  climate_type = "mean",
-  stochastic = FALSE
-)
-
-writeRaster(ndvi_forecast, file = "ndvi/results/predictions/NDVI_mean_climate.tif")
-
-ndvi_mean <- global(ndvi_forecast, fun = "mean", na.rm = TRUE)
-ndvi_mean$time <- time(ndvi_forecast)
-ndvi_mean$type <- "mean"
+temp_summary <- list(mean = tapp(rast_list$temp_stack, "month", "mean"),
+                     sd = tapp(rast_list$temp_stack, "month", "sd"))
 
 
-pred_df1 <- lapply(as.list(1:10), function(x) {
-  ndvi_forecast <- forecast_ndvi_raster(
-    model_dir = output_dir, 
-    climate_years = c(2007, 2008),
-    stochastic = TRUE
-  )
-  ndvi_df <- global(ndvi_forecast, fun = "mean", na.rm = TRUE)
-  ndvi_df$time <- time(ndvi_forecast)
-  return(ndvi_df)
-}) %>% bind_rows(.id = "rep") %>%
-  mutate(type = "cold-wet")
+precip_summary <- list(mean = tapp(rast_list$precip_stack, "month", "mean"),
+                       sd = tapp(rast_list$precip_stack, "month", "sd"))
 
 
-pred_df2 <- lapply(as.list(1:10), function(x) {
-  ndvi_forecast <- forecast_ndvi_raster(
-    model_dir = output_dir, 
-    climate_years = c(2022, 2023),
-    stochastic = TRUE
-  )
-  ndvi_df <- global(ndvi_forecast, fun = "mean", na.rm = TRUE)
-  ndvi_df$time <- time(ndvi_forecast)
-  return(ndvi_df)
-}) %>% bind_rows(.id = "rep") %>%
-  mutate(type = "hot-dry")
+temp_rast <- list(warm = (2 * temp_summary$sd) + temp_summary$mean,
+                  mean = temp_summary$mean,
+                  cold = (-2 * temp_summary$sd) + temp_summary$mean)
 
-pred_df <- bind_rows(ndvi_mean, pred_df1, pred_df2)
+precip_rast <- list(wet = (2 * precip_summary$sd) + precip_summary$mean,
+                    mean = precip_summary$mean,
+                    dry = (-2 * precip_summary$sd) + precip_summary$mean)
 
+writeRaster(temp_rast$warm, file.path(output_dir, "temp_warm_values.tif"), overwrite = TRUE)
+writeRaster(temp_rast$mean, file.path(output_dir, "temp_mean_values.tif"), overwrite = TRUE)
+writeRaster(temp_rast$cold, file.path(output_dir, "temp_cold_values.tif"), overwrite = TRUE)
+writeRaster(precip_rast$wet, file.path(output_dir, "precip_wet_values.tif"),   overwrite = TRUE)
+writeRaster(precip_rast$mean, file.path(output_dir, "precip_mean_values.tif"), overwrite = TRUE)
+writeRaster(precip_rast$dry, file.path(output_dir, "precip_dry_values.tif"),   overwrite = TRUE)
 
-ggplot() +
-  geom_line(data = pred_df, aes(x = time, y = mean, group = interaction(rep, type), colour = type)) +
-  scale_colour_manual(name = "Climate",
-                      values = c("blue", "red", "black")) +
-  ylab("Mean NDVI") +
-  theme_minimal()
-
-
-# ggplot() +
-#   geom_spatraster(data = ndvi_forecast[[36]]) + 
-#   scale_fill_viridis_c() +
-#   ggtitle("Predicted NDVI", subtitle = paste(as.character(time(ndvi_forecast[[36]])), "mean climate"))
-# 
-
-
+saveRDS(time(temp_rast$warm), file.path(output_dir, "temp_warm_time.rds"))
+saveRDS(time(temp_rast$mean), file.path(output_dir, "temp_mean_time.rds"))
+saveRDS(time(temp_rast$cold), file.path(output_dir, "temp_cold_time.rds"))
+saveRDS(time(precip_rast$wet), file.path(output_dir, "precip_wet_time.rds"))
+saveRDS(time(precip_rast$mean), file.path(output_dir, "precip_mean_time.rds"))
+saveRDS(time(precip_rast$dry), file.path(output_dir, "precip_dry_time.rds"))
