@@ -1,5 +1,3 @@
-library(terra)
-library(lubridate)
 
 load_stack_with_time <- function(tif_path, time_path) {
   r <- rast(tif_path)

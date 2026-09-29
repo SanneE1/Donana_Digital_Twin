@@ -1,12 +1,17 @@
-library(tidyverse)
+# library(tidyverse)
 library(terra)
-library(tidyterra)
+# library(tidyterra)
 library(patchwork)
-library(reticulate)
-library(data.table)  
+# library(reticulate)
+library(data.table)
 library(lubridate)
-library(xgboost)     
-library(zoo)         
+library(xgboost)
+# library(pdp)
+library(ggplot2)
+library(tidyterra)
+# library(zoo)    
+library(ncdf4)
+library(purrr)
 
 
 # Settings
@@ -18,9 +23,9 @@ output_dir = file.path("ndvi", "results")
 model_dir = file.path(output_dir, "model_info")
 pred_dir = file.path(output_dir, "predictions")
 
-ndvi_path = file.path(env_dir, "ndvi.tif")
+ndvi_path = file.path(env_dir, "NDVI")
 template_path = file.path(env_dir, "template_raster_500.tif")
-krig_path = file.path(env_dir, "CDS")
+krig_path = file.path(env_dir, "CDS", "kriged_temperature")
 precip_path = file.path(env_dir, "CDS", "precipitation.nc")
 
 sapply(list.files(file.path("ndvi", "functions"), full.names = T), source)
@@ -33,10 +38,10 @@ if(!dir.exists(model_dir)) { dir.create(model_dir, recursive = T) }
 # Load data  
 #-------------------------------------------------------------------------------
 template_rast <- rast(template_path)
-ndvi_files <- list.files(ndvi_path)
+ndvi_files <- list.files(ndvi_path, full.names = T)
 
 rast_list <- create_model_rasters(template = template_rast, 
-                                  ndvi_file = ndvi_path, 
+                                  ndvi_file = ndvi_files, 
                                   krig_dir = krig_path, 
                                   precip_file = precip_path)
 
