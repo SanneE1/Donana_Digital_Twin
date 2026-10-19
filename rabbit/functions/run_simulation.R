@@ -46,9 +46,13 @@ run_simulation <- function(posterior_df, start_year, end_year,
 
     hab_folder <- file.path(tmpdir, idx[i], "habitat_folder")
 
+    k_file <- file.path(hab_folder, "K_maps.kbin")
+
     if(!dir.exists(hab_folder)) {
       dir.create(hab_folder, recursive = T)
 
+      # One binary file with the K maps of all months. Months after the last one reuse the
+      # last month in the Pascal program, so no copy of December into the next January is needed.
       create_K_map_gaussian(
         Cov_list   = Cov_list,
         param_list = map_param_list,
@@ -56,12 +60,6 @@ run_simulation <- function(posterior_df, start_year, end_year,
         start_year = start_year,
         end_year   = end_year
       )
-
-      last_map <- file.path(hab_folder, paste0(end_year, "_12.txt"))
-      next_map <- file.path(hab_folder, paste0(end_year + 1, "_01.txt"))
-      if(!file.exists(next_map) && file.exists(last_map)){
-        file.copy(from = last_map, to = next_map)
-      }
     }
 
     sim_dir <- file.path(tmpdir, paste("sim", i, sep = "_"))
@@ -73,8 +71,8 @@ run_simulation <- function(posterior_df, start_year, end_year,
       as.character(start_year),
       as.character(end_year),
       rabbit_demographic_rates,
-      list.files(hab_folder, full.names = T)[1],
-      hab_folder,
+      k_file,                     # first habitat map (the Pascal program reads K from the file below)
+      k_file,                     # K maps of all months
       demographic_climate,
       "0",                        # Do not create all monthly maps (only census months)
       "0",                        # Do not use a starting map, but use carrying capacity map to initiate

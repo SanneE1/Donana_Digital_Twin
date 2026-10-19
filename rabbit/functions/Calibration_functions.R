@@ -42,11 +42,12 @@ model_fn <- function(params, start_yr, end_yr,
     dir.create(hab_folder)
     # dir.create(detect_folder)
     
-    create_K_map_gaussian(
-      Cov_list   = Cov_list, 
+    # One binary file with the K maps of all months (see K_map_binary.R)
+    k_file <- create_K_map_gaussian(
+      Cov_list   = Cov_list,
       param_list = map_param_list,
       output_dir = hab_folder,
-      start_year = start_yr, 
+      start_year = start_yr,
       end_year   = end_yr
       )
     
@@ -68,8 +69,8 @@ model_fn <- function(params, start_yr, end_yr,
       as.character(start_yr),
       as.character(end_yr),
       rabbit_demographic_rates,
-      file.path(hab_folder, list.files(hab_folder)[1]),
-      hab_folder,
+      k_file,                     # first habitat map (the Pascal program reads K from the file below)
+      k_file,                     # K maps of all months
       out_dir_clim,
       "0",                        # Do not create all monthly maps (only census months)
       "0",                        # Do not use a starting map, but use carrying capacity map to initiate
