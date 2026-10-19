@@ -8,7 +8,7 @@ function(
     obs_df                   = file.path("data", "rabbit", "Doñana_census_data_PacoCarro", "KAI_Rabbit_Night_2024_v1.csv"),
     # spatial_model            = file.path("data", "rabbit", "")
     rabbit_demographic_rates = file.path("rabbit", "output_data", "Rabbit_demography_values.txt"),
-    demograph_mod            = file.path("rabbit", "output_data", "Pascal_program", "programs", "Rabbit_x86_64-win64.exe"),
+    demograph_mod            = file.path("rabbit", "Pascal_program", "programs", "Rabbit_x86_64-win64.exe"),
     
     temperature_files        = file.path("data", "environmental_data", "CDS", "kriged_temperature"),
     is_Kelvin                = T,
@@ -27,7 +27,7 @@ function(
   # obs_transects            = file.path("data", "rabbit", "Doñana_census_data_PacoCarro", "Transect_oryctolagus.kml")
   # obs_df                   = file.path("data", "rabbit", "Doñana_census_data_PacoCarro", "KAI_Rabbit_Night_2024_v1.csv")
   # rabbit_demographic_rates = file.path("rabbit", "output_data", "Rabbit_demography_values.txt")
-  # demograph_mod            = file.path("rabbit", "output_data", "Pascal_program", "programs", "Rabbit_x86_64-win64.exe")
+  # demograph_mod            = file.path("rabbit", "Pascal_program", "programs", "Rabbit_x86_64-win64.exe")
   # temperature_files        = file.path("data", "environmental_data", "CDS", "kriged_temperature")
   # is_Kelvin                = T
   # precipitation_files      = file.path("data", "environmental_data", "CDS", "precipitation.nc")
@@ -215,7 +215,7 @@ function(
                                  N_samples     = N_sim_samples,  # Number of samples
                                  compare_obs   = T)              # Plot comparison of simulated KAI with obs KAI
   
-  saveRDS(historic_sim, file = file.path(out_dir, "historic_in_sample_simulation.rds"))
+  save_simulation(historic_sim, file.path(out_dir, "historic_in_sample_simulation"))
   
   plot(historic_sim$pop_maps$Rabbit_Population_distribution_2024_9$mean)
   plot(historic_sim$pop_maps$Rabbit_Population_distribution_2024_1$mean)

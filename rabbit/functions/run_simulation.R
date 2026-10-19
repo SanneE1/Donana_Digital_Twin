@@ -8,6 +8,15 @@ run_simulation <- function(posterior_df, start_year, end_year,
                            compare_obs = F,
                            demographic_climate){
 
+  required_cols <- c("K_max", "ndvi_opt", "ndvi_sigma", "ndvi_sd_opt", "ndvi_sd_sigma",
+                     "height_opt", "height_sigma", "dens_opt", "R_lambda", "R_sigma",
+                     "ndvi_w", "ndvi_sd_w", "height_w", "weights")
+  missing_cols <- setdiff(required_cols, names(posterior_df))
+  if (length(missing_cols) > 0) {
+    stop("posterior_df is missing column(s): ", paste(missing_cols, collapse = ", "),
+         ". Posteriors from before the suitability weights were added must be re-calibrated.")
+  }
+
   tmpdir <- tempfile(tmpdir = tempdir())   # unique path, not yet created
   dir.create(tmpdir, recursive = TRUE)
   on.exit(unlink(tmpdir, recursive = TRUE), add = TRUE)
@@ -16,21 +25,23 @@ run_simulation <- function(posterior_df, start_year, end_year,
 
   all_reps <- vector("list", N_samples)
 
-  for (i in seq_along(idx)) {
+  for (i in c(1:length(idx))) {
 
-    K_max          <- round(posterior_df$K_max[idx[i]])   # discrete; prior samples a continuous uniform
     dens_opt       <- round(posterior_df$dens_opt[idx[i]])   # discrete
     R_lambda       <- posterior_df$R_lambda[idx[i]]
     R_sigma        <- posterior_df$R_sigma[idx[i]]
 
     map_param_list <- list(
-      K      = K_max,
+      K      = posterior_df$K_max[idx[i]],
       N_opt  = posterior_df$ndvi_opt[idx[i]],
       N_sig  = posterior_df$ndvi_sigma[idx[i]],
       S_opt  = posterior_df$ndvi_sd_opt[idx[i]],
       S_sig  = posterior_df$ndvi_sd_sigma[idx[i]],
       H_opt  = posterior_df$height_opt[idx[i]],
-      H_sig  = posterior_df$height_sigma[idx[i]]
+      H_sig  = posterior_df$height_sigma[idx[i]],
+      N_w    = posterior_df$ndvi_w[idx[i]],
+      S_w    = posterior_df$ndvi_sd_w[idx[i]],
+      H_w    = posterior_df$height_w[idx[i]]
     )
 
     hab_folder <- file.path(tmpdir, idx[i], "habitat_folder")
@@ -98,8 +109,11 @@ run_simulation <- function(posterior_df, start_year, end_year,
   maps <- calculate_matrix_statistics(folder_paths = tmpdir,
                                       template_raster = DT_template)
 
-  df <- bind_rows(all_reps, .id = "id") %>%
-    mutate(id = as.integer(id))
+  df <- if (compare_obs) {
+    bind_rows(all_reps, .id = "id") %>% mutate(id = as.integer(id))
+  } else {
+    NULL
+  }
 
     return(list("pop_maps" = maps,
                 "sim_df" = df))

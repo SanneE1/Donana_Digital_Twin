@@ -354,12 +354,133 @@ check_time_span <- function(r, start_year, end_year, raster_name = NULL) {
   invisible(TRUE)
 }
 
-check_time_span_list <- function(raster_list, start_year, end_year) {
+
+# Which of the expected months (Jan start_year - Dec end_year) are absent
+# from a raster's time steps. Static rasters (no time dimension) have no
+# concept of monthly coverage, so they're reported as NULL (nothing to check).
+find_missing_months <- function(r, start_year, end_year) {
+  t <- time(r)
+  if (is.null(t) || all(is.na(t))) return(NULL)
+
+  expected_months <- seq(as.Date(paste0(start_year, "-01-01")),
+                         as.Date(paste0(end_year, "-12-01")),
+                         by = "1 month")
+  available_months <- floor_date(as.Date(t), "month")
+
+  expected_months[!expected_months %in% available_months]
+}
+
+# Fill missing monthly layers by linearly interpolating, per cell, between
+# the nearest available month before and after the gap ("temporal
+# bilateral" fill). A gap with only one available neighbour (i.e. at the
+# very start or end of the series) is carried forward/backward from that
+# single neighbour instead, since there's nothing to interpolate between.
+fill_missing_months <- function(r, missing_months) {
+  if (length(missing_months) == 0) return(r)
+
+  all_times <- floor_date(as.Date(time(r)), "month")
+  full_seq  <- sort(unique(c(all_times, missing_months)))
+
+  filled_layers <- vector("list", length(full_seq))
+
+  for (i in seq_along(full_seq)) {
+    d   <- full_seq[i]
+    idx <- which(all_times == d)
+
+    if (length(idx) > 0) {
+      filled_layers[[i]] <- r[[idx[1]]]
+      next
+    }
+
+    before <- all_times[all_times < d]
+    after  <- all_times[all_times > d]
+
+    if (length(before) > 0 && length(after) > 0) {
+      t0 <- max(before)
+      t1 <- min(after)
+      w  <- as.numeric(d - t0) / as.numeric(t1 - t0)
+      r0 <- r[[which(all_times == t0)[1]]]
+      r1 <- r[[which(all_times == t1)[1]]]
+      filled_layers[[i]] <- (1 - w) * r0 + w * r1
+    } else if (length(before) > 0) {
+      filled_layers[[i]] <- r[[which(all_times == max(before))[1]]]
+    } else {
+      filled_layers[[i]] <- r[[which(all_times == min(after))[1]]]
+    }
+  }
+
+  r_filled <- rast(filled_layers)
+  time(r_filled) <- full_seq
+  r_filled
+}
+
+check_time_span_list <- function(raster_list, start_year, end_year,
+                                 check_gaps = TRUE, fill_gaps = FALSE) {
   names_list <- names(raster_list)
   if (is.null(names_list)) names_list <- paste0("raster_", seq_along(raster_list))
-  
+
   for (i in seq_along(raster_list)) {
     check_time_span(raster_list[[i]], start_year, end_year, raster_name = names_list[i])
   }
-  invisible(TRUE)
+
+  if (check_gaps || fill_gaps) {
+    for (i in seq_along(raster_list)) {
+      missing_months <- find_missing_months(raster_list[[i]], start_year, end_year)
+      if (is.null(missing_months) || length(missing_months) == 0) next
+
+      gap_msg <- sprintf("'%s' is missing %d month(s): %s",
+                         names_list[i], length(missing_months),
+                         paste(format(missing_months, "%Y-%m"), collapse = ", "))
+      message(gap_msg)
+      warning(gap_msg, call. = FALSE)
+
+      if (fill_gaps) {
+        raster_list[[i]] <- fill_missing_months(raster_list[[i]], missing_months)
+        message(sprintf("  -> filled via temporal interpolation in '%s'", names_list[i]))
+      }
+    }
+  }
+
+  invisible(raster_list)
+}
+
+
+# Save / load a run_simulation() result (list with $pop_maps and $sim_df).
+# SpatRasters hold external pointers, so saveRDS() produces unusable objects
+# on reload. Rasters are written as GeoTIFFs (one file per map/statistic) and
+# sim_df as a CSV.
+save_simulation <- function(sim, out_dir) {
+  tif_dir <- file.path(out_dir, "pop_maps")
+  dir.create(tif_dir, recursive = TRUE, showWarnings = FALSE)
+
+  for (map_name in names(sim$pop_maps)) {
+    for (stat in names(sim$pop_maps[[map_name]])) {
+      terra::writeRaster(sim$pop_maps[[map_name]][[stat]],
+                         file.path(tif_dir, paste0(map_name, "__", stat, ".tif")),
+                         overwrite = TRUE)
+    }
+  }
+  readr::write_csv(sim$sim_df, file.path(out_dir, "sim_df.csv"))
+  invisible(out_dir)
+}
+
+load_simulation <- function(out_dir) {
+  tif_files <- list.files(file.path(out_dir, "pop_maps"),
+                          pattern = ".tif$", full.names = TRUE)
+  base <- tools::file_path_sans_ext(basename(tif_files))
+  map_names <- sub("__[^_]+$", "", base)
+  stats <- sub("^.*__", "", base)
+
+  pop_maps <- list()
+  for (i in seq_along(tif_files)) {
+    pop_maps[[map_names[i]]][[stats[i]]] <- terra::rast(tif_files[i])
+  }
+  # restore the original stat order
+  stat_order <- c("mean", "std", "lower_ci", "upper_ci")
+  pop_maps <- lapply(pop_maps, function(x) x[intersect(stat_order, names(x))])
+
+  sim_df <- readr::read_csv(file.path(out_dir, "sim_df.csv"), show_col_types = FALSE) |>
+    dplyr::mutate(Fecha = as.Date(Fecha))
+
+  list(pop_maps = pop_maps, sim_df = sim_df)
 }

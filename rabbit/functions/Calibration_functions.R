@@ -2,8 +2,11 @@
 # ABC model
 # ----------------------------------------------------------------------------------------
 
-model_fn <- function(params, start_yr, end_yr) {
-  
+model_fn <- function(params, start_yr, end_yr,
+                     Cov_list, DT_template,
+                     demograph_mod, rabbit_demographic_rates,
+                     obs_transects, obs_df, out_dir_clim) {
+
   # params = c(1, 1.1,1.1,20,1,0.01,0.1,0,0)   # just here for quick test runs
   set.seed(params[1])
   # alpha      <- params[2]
@@ -15,7 +18,10 @@ model_fn <- function(params, start_yr, end_yr) {
     S_opt     = params[5],
     S_sig     = params[6],
     H_opt     = params[7],
-    H_sig     = params[8]
+    H_sig     = params[8],
+    N_w       = params[12],         # suitability weights (normalised in create_K_map_gaussian)
+    S_w       = params[13],
+    H_w       = params[14]
   )
 
   dens_opt   <- round(params[9])   # discrete
@@ -94,12 +100,12 @@ model_fn <- function(params, start_yr, end_yr) {
       dplyr::select(Fecha, KAI, transect) %>%
       mutate(Fecha = dmy(Fecha))
     
-    merged <- left_join(obs_data_parsed, sim_data,
+    merged <- left_join(sim_data, obs_data_parsed,
                         by = c("Fecha", "transect"),
-                        suffix = c("_obs", "_sim")) %>%
+                        suffix = c("_sim", "_obs")) %>%
       arrange(Fecha, transect)
     
-    if (nrow(merged) == 0) {
+    if (nrow(merged) == 0 || all(is.na(merged$KAI_obs))) {
       message("No matched rows for params: ", paste(round(params, 4), 
                                                     collapse = ", "))
       return(c(-5, -5))
