@@ -1,12 +1,17 @@
 
 
+# rhd_settings: named list of RHD settings (see rhd_settings.R); NULL = the program's default
+# (schedule mode). Calibrated RHD settings in posterior_df (columns RHD_... or log10_RHD_...)
+# replace the values in rhd_settings per draw. With immunity mode, the RHD logs of all draws are
+# returned as $rhd.
 run_simulation <- function(posterior_df, start_year, end_year,
                            Cov_list, DT_template,
                            obs_transects, obs_df,
                            demograph_mod, rabbit_demographic_rates,
                            N_samples = 3,
                            compare_obs = F,
-                           demographic_climate){
+                           demographic_climate,
+                           rhd_settings = NULL){
 
   required_cols <- c("K_max", "ndvi_opt", "ndvi_sigma", "ndvi_sd_opt", "ndvi_sd_sigma",
                      "height_opt", "height_sigma", "dens_opt", "R_lambda", "R_sigma",
@@ -24,6 +29,9 @@ run_simulation <- function(posterior_df, start_year, end_year,
   idx <- sample(x = nrow(posterior_df), size = N_samples, prob = posterior_df$weights, replace = T)
 
   all_reps <- vector("list", N_samples)
+  rhd_reps <- vector("list", N_samples)
+
+  rhd_cols <- rhd_param_columns(posterior_df)
 
   for (i in c(1:length(idx))) {
 
@@ -58,7 +66,8 @@ run_simulation <- function(posterior_df, start_year, end_year,
         param_list = map_param_list,
         output_dir = hab_folder,
         start_year = start_year,
-        end_year   = end_year
+        end_year   = end_year,
+        study_area = DT_template
       )
     }
 
@@ -80,6 +89,11 @@ run_simulation <- function(posterior_df, start_year, end_year,
       as.character(R_lambda),
       as.character(R_sigma)
     )
+    if (!is.null(rhd_settings)) {
+      rhd_file <- file.path(tmpdir, paste0("rhd_settings_", i, ".txt"))
+      write_rhd_settings(set_rhd_params(rhd_settings, rhd_cols, unlist(posterior_df[idx[i], rhd_cols])), rhd_file)
+      cmd_args <- c(cmd_args, "-1", rhd_file)   # -1: no fixed random seed
+    }
 
     result <- system2(cmd_args[1], args = cmd_args[-1],
                       stdout = TRUE, stderr = TRUE,
@@ -87,6 +101,10 @@ run_simulation <- function(posterior_df, start_year, end_year,
 
     if (!is.null(attr(result, "status")) && attr(result, "status") != 0) {
       stop("Subprocess failed: ", paste(result, collapse = "\n"))
+    }
+
+    if (file.exists(file.path(sim_dir, "rhd_monthly.csv"))) {
+      rhd_reps[[i]] <- read_rhd_logs(sim_dir)
     }
 
     if(compare_obs){
@@ -113,8 +131,16 @@ run_simulation <- function(posterior_df, start_year, end_year,
     NULL
   }
 
+    rhd <- NULL
+    if (any(!vapply(rhd_reps, is.null, logical(1)))) {
+      rhd <- list(
+        outbreaks = bind_rows(lapply(rhd_reps, `[[`, "outbreaks"), .id = "id") %>% mutate(id = as.integer(id)),
+        monthly   = bind_rows(lapply(rhd_reps, `[[`, "monthly"), .id = "id") %>% mutate(id = as.integer(id)))
+    }
+
     return(list("pop_maps" = maps,
-                "sim_df" = df))
+                "sim_df" = df,
+                "rhd" = rhd))
   }
 
 

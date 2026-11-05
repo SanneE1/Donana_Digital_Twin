@@ -3,47 +3,47 @@
 #
 
 rabbit_calibration <- function(
-  template       = file.path("data", "environmental_data", "template_raster_500.tif"),
-  years_range    = c(2019, 2022),
-
-  obs_transects  = file.path("data", "rabbit", "Doñana_census_data_PacoCarro", "Transect_oryctolagus.kml"),
-  obs_df         = file.path("data", "rabbit", "Doñana_census_data_PacoCarro", "KAI_Rabbit_Night_2024_v1.csv"),
-
-  rabbit_demographic_rates = file.path("rabbit", "output_data", "Rabbit_demography_values.txt"),
-  demograph_mod            = file.path("rabbit", "Pascal_program", "programs", "Rabbit_x86_64-win64.exe"),
-
-  temperature_files   = file.path("data", "environmental_data", "CDS", "kriged_temperature"),
-  is_Kelvin           = T,
-  precipitation_files = file.path("data", "environmental_data", "CDS", "precipitation.nc"),
-  ndvi_files          = list.files(file.path("data", "environmental_data", "NDVI"), full.names = T),
-  flood_files         = file.path("data", "environmental_data", "LAST_monthly_floodmaps"),
-  height_files        = file.path("data", "environmental_data", "vegetation_height", "merged_veg_height_donana_NA_interpolated.tif"),
-
-  out_dir             = file.path("rabbit", "results"),
-  N_sim_samples       = 50,
-  n_cluster           = 4,
-  fill_gaps           = TRUE   # if TRUE, fill missing monthly raster layers via temporal interpolation
-
+    template       = file.path("data", "environmental_data", "template_raster_500.tif"),
+    years_range    = c(2019, 2022),
+    
+    obs_transects  = file.path("data", "rabbit", "Doñana_census_data_PacoCarro", "Transect_oryctolagus.kml"),
+    obs_df         = file.path("data", "rabbit", "Doñana_census_data_PacoCarro", "KAI_Rabbit_Night_2024_v1.csv"),
+    
+    rabbit_demographic_rates = file.path("rabbit", "output_data", "Rabbit_demography_values.txt"),
+    demograph_mod            = file.path("rabbit", "Pascal_program", "programs", "Rabbit_x86_64-win64.exe"),
+    
+    temperature_files   = file.path("data", "environmental_data", "CDS", "kriged_temperature"),
+    is_Kelvin           = T,
+    precipitation_files = file.path("data", "environmental_data", "CDS", "precipitation.nc"),
+    ndvi_files          = list.files(file.path("data", "environmental_data", "NDVI"), full.names = T),
+    flood_files         = file.path("data", "environmental_data", "LAST_monthly_floodmaps"),
+    height_files        = file.path("data", "environmental_data", "vegetation_height", "merged_veg_height_donana_NA_interpolated.tif"),
+    
+    out_dir             = file.path("rabbit", "results"),
+    N_sim_samples       = 50,
+    n_cluster           = 4,
+    fill_gaps           = TRUE   # if TRUE, fill missing monthly raster layers via temporal interpolation
+    
 ){
-# 
-#   template                 = file.path("data", "environmental_data", "template_raster_500.tif")
-#   years_range              = c(2006,2024)
-#   obs_transects            = file.path("data", "rabbit", "Doñana_census_data_PacoCarro", "Transect_oryctolagus.kml")
-#   obs_df                   = file.path("data", "rabbit", "Doñana_census_data_PacoCarro", "KAI_Rabbit_Night_2024_v1.csv")
-#   rabbit_demographic_rates = file.path("rabbit", "output_data", "Rabbit_demography_values.txt")
-#   demograph_mod            = file.path("rabbit", "Pascal_program", "programs", "Rabbit_x86_64-win64.exe")
-#   temperature_files        = file.path("data", "environmental_data", "CDS", "kriged_temperature")
-#   is_Kelvin           = T
-#   precipitation_files = file.path("data", "environmental_data", "CDS", "precipitation.nc")
-#   # ndvi_files               = file.path("data", "environmental_data", "NDVI")
-#   ndvi_files               = file.path("data", "environmental_data", "monthly_ndvi.tif")
-#   flood_files              = file.path("data", "environmental_data", "LAST_monthly_floodmaps")
-#   height_files             = file.path("data", "environmental_data", "vegetation_height", "merged_veg_height_donana_NA_interpolated.tif")
-#   out_dir                  = file.path("rabbit", "results")
-#   N_sim_samples            = 50
-#   n_cluster                = 4
-#   fill_gaps                = TRUE
-
+  # 
+  #   template                 = file.path("data", "environmental_data", "template_raster_500.tif")
+  #   years_range              = c(2006,2024)
+  #   obs_transects            = file.path("data", "rabbit", "Doñana_census_data_PacoCarro", "Transect_oryctolagus.kml")
+  #   obs_df                   = file.path("data", "rabbit", "Doñana_census_data_PacoCarro", "KAI_Rabbit_Night_2024_v1.csv")
+  # rabbit_demographic_rates = file.path("data", "rabbit", "Rabbit_demography_values.txt")
+  # demograph_mod            = file.path("rabbit", "Pascal_program", "programs", "Rabbit_x86_64-win64.exe")
+  #   temperature_files        = file.path("data", "environmental_data", "CDS", "kriged_temperature")
+  #   is_Kelvin           = T
+  #   precipitation_files = file.path("data", "environmental_data", "CDS", "precipitation", "precipitation.nc")
+  #   # ndvi_files               = file.path("data", "environmental_data", "NDVI")
+  #   ndvi_files               = file.path("data", "environmental_data", "monthly_ndvi.tif")
+  #   flood_files              = file.path("data", "environmental_data", "LAST_monthly_floodmaps")
+  #   height_files             = file.path("data", "environmental_data", "vegetation_height", "merged_veg_height_donana_NA_interpolated.tif")
+  #   out_dir                  = file.path("rabbit", "results")
+  #   N_sim_samples            = 50
+  #   n_cluster                = 4
+  #   fill_gaps                = TRUE
+  
   cat('\n-----------------------------------------------------------------')
   cat('\n                      Loading libraries')
   cat('\n-----------------------------------------------------------------')
@@ -61,27 +61,28 @@ rabbit_calibration <- function(
   library(coda)
   library(tidyterra)
   library(ggspatial)
+  library(ggh4x)
   
   cat('\n-----------------------------------------------------------------')
   cat('\n                      Load R helper function')
   cat('\n-----------------------------------------------------------------')
-
+  
   # Captured as absolute paths so parallel workers (which start in a fresh
   # R session, possibly with a different working directory) can still find
   # and source these functions.
   proj_root    <- normalizePath(getwd())
   function_dir <- normalizePath(file.path("rabbit", "functions"))
-
+  
   sapply(list.files(function_dir, pattern = ".R", full.names = T), source)
-
-
+  
+  
   cat('\n-----------------------------------------------------------------')
   cat('\n                      Creating output directories')
   cat('\n-----------------------------------------------------------------')
-
+  
   ## Location of files/directory
   out_dir_clim <- file.path(out_dir, "clim_variables")
-
+  
   if(!dir.exists(out_dir_clim)){dir.create(out_dir_clim, recursive = T)}
   
   
@@ -113,9 +114,9 @@ rabbit_calibration <- function(
   DT_template = rast(template)
   
   r_temp   = load_and_format_rasters(temperature_files, DT_template, 
-                                      temporal_agg = "month", temporal_fun = "mean")
+                                     temporal_agg = "month", temporal_fun = "mean")
   r_precip = load_and_format_rasters(precipitation_files, DT_template, temporal_agg = "month", 
-                                      temporal_fun = "sum")
+                                     temporal_fun = "sum")
   r_mean_ndvi   = load_and_format_rasters(ndvi_files, DT_template, 
                                           aggregate = T, fun = "mean",
                                           temporal_agg = "month", temporal_fun = "max")
@@ -128,15 +129,15 @@ rabbit_calibration <- function(
   r_height      = load_and_format_rasters(height_files, DT_template, aggregate = T, fun = "mean")
   
   checked_rasters <- check_time_span_list(raster_list = list("temperature" = r_temp,
-                                                              "precipitation" = r_precip,
-                                                              "meanNDVI" = r_mean_ndvi,
-                                                              "sdNDVI" = r_sd_ndvi,
-                                                              "Fooding" = r_flood #,
-                                                              #"VegHeight" = r_height
-                                                              ),
-                                          start_year, end_year,
-                                          fill_gaps = fill_gaps)
-
+                                                             "precipitation" = r_precip,
+                                                             "meanNDVI" = r_mean_ndvi,
+                                                             "sdNDVI" = r_sd_ndvi,
+                                                             "Fooding" = r_flood #,
+                                                             #"VegHeight" = r_height
+  ),
+  start_year, end_year,
+  fill_gaps = fill_gaps)
+  
   if(fill_gaps){
     r_temp      <- checked_rasters$temperature
     r_precip    <- checked_rasters$precipitation
@@ -191,6 +192,26 @@ rabbit_calibration <- function(
     # c("normal", 0, 2)      # obs_p_ndvi
   )
   
+  # RHD, immunity mode (see docs/model_settings.md and rabbit/functions/rhd_settings.R). Both strains
+  # arrived before the calibration period, so the disease is present from the start (arrival year 0
+  # in the defaults), with part of the rabbits immune. Settings not listed in rhd_priors keep the
+  # values of rhd_default_settings().
+  rhd_settings <- rhd_default_settings()
+  
+  # Calibrated RHD settings; their values follow the 13 parameters above (params[15], ...).
+  # A "log10_" name is calibrated on the log10 scale.
+  rhd_priors <- list(
+    RHD_f_crit      = c("unif", 0.2, 0.9),    # susceptible share at which an exposed cell has a 50% outbreak chance
+    log10_RHD_spark = c("unif", -4, -1.5),    # background introduction, per cell per month (1e-4 to 0.03)
+    RHD_spread      = c("unif", 0, 1),        # spread per neighbouring cell with an outbreak last month
+    RHD_mortality   = c("unif", 0.3, 0.9)     # share of infected rabbits that die
+  )
+  prior_list <- c(prior_list, unname(rhd_priors))
+  
+  # Third summary statistic: how far the median interval between park-wide outbreak waves lies
+  # outside 24-36 months (0 = inside; see rhd_interval_distance). The first (spin-up) year is left out.
+  rhd_target <- list(scale = "park", target = c(24, 36), from = rhd_month_index(start_year + 1, 1))
+  
   
   # ----------------------------------------------------------------------------------------
   # 6. Run calibration
@@ -202,18 +223,19 @@ rabbit_calibration <- function(
   rabbit_demographic_rates_abs <- normalizePath(rabbit_demographic_rates)
   obs_transects_abs            <- normalizePath(obs_transects)
   out_dir_clim_abs             <- normalizePath(out_dir_clim)
-
+  
   # terra SpatRasters hold external C pointers that cannot be serialized to
   # other R processes as-is; wrap()/unwrap() convert them to/from a portable
   # form so they can be shipped to n_cluster > 1 parallel workers.
   Cov_list_wrapped    <- lapply(Cov_list, terra::wrap)
   DT_template_wrapped <- terra::wrap(DT_template)
-
+  
   make_model_fn <- function(start_year, end_year,
                             Cov_list_wrapped, DT_template_wrapped,
                             demograph_mod, rabbit_demographic_rates,
                             obs_transects, obs_df, out_dir_clim,
-                            function_dir, proj_root) {
+                            function_dir, proj_root,
+                            rhd_settings, rhd_param_names, rhd_target) {
     # Function arguments are lazy in R: until referenced, each one above is
     # just a promise pointing back at THIS call's expressions, evaluated in
     # rabbit_calibration()'s frame. That frame also holds large objects
@@ -229,7 +251,8 @@ rabbit_calibration <- function(
     force(demograph_mod); force(rabbit_demographic_rates)
     force(obs_transects); force(obs_df); force(out_dir_clim)
     force(function_dir); force(proj_root)
-
+    force(rhd_settings); force(rhd_param_names); force(rhd_target)
+    
     model_fn_inner <- function(par) {
       # A parallel (PSOCK) worker starts as a blank R session with no
       # packages loaded, no sourced functions, and no access to this
@@ -240,7 +263,7 @@ rabbit_calibration <- function(
       if(!exists("model_fn", mode = "function")){
         sapply(list.files(function_dir, pattern = ".R", full.names = T), source)
       }
-
+      
       model_fn(params        = par,
                start_yr      = start_year,
                end_yr        = end_year,
@@ -250,20 +273,24 @@ rabbit_calibration <- function(
                rabbit_demographic_rates = rabbit_demographic_rates,
                obs_transects = obs_transects,
                obs_df        = obs_df,
-               out_dir_clim  = out_dir_clim)
+               out_dir_clim  = out_dir_clim,
+               rhd_settings  = rhd_settings,
+               rhd_param_names = rhd_param_names,
+               rhd_target    = rhd_target)
     }
-
+    
     environment(model_fn_inner) <- list2env(
       list(start_year = start_year, end_year = end_year,
            Cov_list_wrapped = Cov_list_wrapped, DT_template_wrapped = DT_template_wrapped,
            demograph_mod = demograph_mod, rabbit_demographic_rates = rabbit_demographic_rates,
            obs_transects = obs_transects, obs_df = obs_df, out_dir_clim = out_dir_clim,
-           function_dir = function_dir, proj_root = proj_root),
+           function_dir = function_dir, proj_root = proj_root,
+           rhd_settings = rhd_settings, rhd_param_names = rhd_param_names, rhd_target = rhd_target),
       parent = globalenv()
     )
     model_fn_inner
   }
-
+  
   # Create the wrapped version with your specific constants
   model_fn_wrapped <- make_model_fn(start_year           = start_year,
                                     end_year              = end_year,
@@ -275,8 +302,11 @@ rabbit_calibration <- function(
                                     obs_df                = obs_df,
                                     out_dir_clim          = out_dir_clim_abs,
                                     function_dir          = function_dir,
-                                    proj_root             = proj_root)
-
+                                    proj_root             = proj_root,
+                                    rhd_settings          = rhd_settings,
+                                    rhd_param_names       = names(rhd_priors),
+                                    rhd_target            = rhd_target)
+  
   cat('\n-----------------------------------------------------------------')
   cat('\n                 Running ABC')
   cat('\n-----------------------------------------------------------------')
@@ -286,11 +316,14 @@ rabbit_calibration <- function(
     model               = model_fn_wrapped,
     prior               = prior_list,
     inside_prior        = FALSE,
-    p_acc_min           = 0.2,       # stops when acceptance rate drops below 5%
-    summary_stat_target = c(0.2, 0),
+    p_acc_min           = 0.05,       # stops when acceptance rate drops below 5%
+    # model_fn returns: median correlation of simulated and observed KAI over the transects (best: 1),
+    # median correlation of their changes between censuses (best: 1), and the RHD interval distance
+    # (best: 0). NB: the target used to be c(0, 0), i.e. no correlation with the observations.
+    summary_stat_target = c(1, 1, 0),
     nb_simul            = 300,
     use_seed            = TRUE,
-    verbose             = FALSE,
+    verbose             = TRUE,
     n_cluster           = n_cluster
   )
   
@@ -310,7 +343,7 @@ rabbit_calibration <- function(
                           "ndvi_sd_opt", "ndvi_sd_sigma",
                           "height_opt", "height_sigma",
                           "dens_opt", "R_lambda", "R_sigma",
-                          "ndvi_w", "ndvi_sd_w", "height_w", "weights")
+                          "ndvi_w", "ndvi_sd_w", "height_w", names(rhd_priors), "weights")
   
   write.csv(param_df, file = file.path(out_dir, "posterior_samples.csv"))
   saveRDS(abc_result, file = file.path(out_dir, "posterior_samples.rds"))
@@ -332,7 +365,8 @@ rabbit_calibration <- function(
                                  obs_df                 = obs_df,
                                  demograph_mod          = demograph_mod,
                                  rabbit_demographic_rates = rabbit_demographic_rates,
-                                 demographic_climate    = out_dir_clim)
+                                 demographic_climate    = out_dir_clim,
+                                 rhd_settings           = rhd_settings)
   
   save_simulation(historic_sim, file.path(out_dir, "historic_in_sample_simulation"))
   historic_sim <- load_simulation(file.path(out_dir, "historic_in_sample_simulation"))
@@ -340,16 +374,49 @@ rabbit_calibration <- function(
   plot(historic_sim$pop_maps$Rabbit_Population_distribution_2022_9$mean)
   plot(historic_sim$pop_maps$Rabbit_Population_distribution_2020_9$mean)
   
-  plot_df <- obs_df %>%
-    mutate(Fecha = as.Date(Fecha, format = "%d/%m/%Y")) %>%
-    select(Fecha, transect, KAI) %>% 
-    rename(obs_KAI = KAI) %>%
-    right_join(., historic_sim$sim_df)
+  sim_sum <- historic_sim$sim_df %>%
+    group_by(transect, Fecha) %>%
+    summarise(mean = mean(KAI), min = min(KAI), max = max(KAI), .groups = "drop")
   
-  plot <- ggplot(plot_df) +
-    geom_line(aes(x = Fecha, y = KAI, group = id)) +
-    geom_line(aes(x = Fecha, y = obs_KAI), colour = "red") +
-    facet_wrap(vars(transect))
+  rates <- historic_sim$sim_df %>%
+    rename(KAI_sim = KAI) %>%
+    inner_join(obs_df %>% mutate(Fecha = as.Date(obs_df$Fecha, format = "%d/%m/%Y")), 
+               by = c("Fecha", "transect")) %>%
+    filter(KAI > 0) %>%
+    mutate(rate = KAI_sim / KAI) %>%
+    group_by(transect) %>%
+    summarise(rate = mean(rate, na.rm = TRUE), .groups = "drop")
+  
+  scaled <- function(d) d %>% left_join(rates, by = "transect") %>% mutate(KAI = KAI * rate)
+  
+  # y-limit per transect: simulation max (with 5% headroom), floored at 0
+  lims <- historic_sim$sim_df %>%
+    group_by(transect) %>%
+    summarise(hi = max(KAI, na.rm = TRUE) * 1.05, .groups = "drop") %>%
+    arrange(transect)
+  
+  y_scales <- lapply(lims$hi, function(h) scale_y_continuous(limits = c(0, h)))
+  
+  plot <- ggplot() +
+    geom_vline(xintercept = as.Date(max(obs_df$Fecha, na.rm = T), format = "%d/%m/%Y"),
+               linetype = "dotted", colour = "grey50") +
+    geom_ribbon(data = sim_sum, aes(x = Fecha, ymin = min, ymax = max),
+                fill = "#c87941", alpha = 0.25) +
+    geom_line(data = historic_sim$sim_df, aes(x = Fecha, y = KAI, group = id),
+              colour = "#8B4513", alpha = 0.25, linewidth = 0.3) +
+    geom_line(data = sim_sum, aes(x = Fecha, y = mean), colour = "#8B4513", linewidth = 1) +
+    geom_line(data = scaled(obs_df) %>% mutate(Fecha = as.Date(Fecha, format = "%d/%m/%Y")),
+              aes(x = Fecha, y = KAI), colour = "black", linewidth = 0.6, na.rm = TRUE) +
+    facet_wrap(vars(transect), scales = "free_y", ncol = 2) +
+    facetted_pos_scales(y = y_scales) +
+    coord_cartesian(xlim = c(as.Date("2022-01-01"), max(historic_sim$sim_df$Fecha))) +
+    labs(x = NULL, y = "Relative rabbit abundance (KAI)",
+         title = "Rabbit abundance per transect",
+         subtitle = paste("Brown: simulated mean (line), range of 5 samples (band);",
+                          "black: observed KAI (rescaled); blue: 2025 census.")) +
+    theme_minimal(base_size = 12) +
+    theme(plot.subtitle = element_text(size = 9, colour = "grey30"),
+          strip.text = element_text(face = "bold"))
   
   ggsave(plot, filename = file.path(out_dir, "observation_vs_simulated.png"), width = 5, height = 4)
   

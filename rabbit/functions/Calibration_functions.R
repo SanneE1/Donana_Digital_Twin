@@ -2,10 +2,19 @@
 # ABC model
 # ----------------------------------------------------------------------------------------
 
+# RHD (optional, see rhd_settings.R and rhd_summaries.R):
+#   rhd_settings     named list of RHD settings for the Pascal program (NULL = no settings file,
+#                    i.e. the program's default schedule mode)
+#   rhd_param_names  names of RHD settings calibrated here; their values are params[15], params[16], ...
+#                    A name starting with "log10_" is calibrated on the log10 scale (e.g. log10_RHD_spark)
+#   rhd_target       list(scale = "park" or "cell", target = c(24, 36), from = month index or NULL);
+#                    when given, a third statistic is returned: the distance of the outbreak
+#                    intervals from the target range (rhd_interval_distance), 0 = inside it
 model_fn <- function(params, start_yr, end_yr,
                      Cov_list, DT_template,
                      demograph_mod, rabbit_demographic_rates,
-                     obs_transects, obs_df, out_dir_clim) {
+                     obs_transects, obs_df, out_dir_clim,
+                     rhd_settings = NULL, rhd_param_names = NULL, rhd_target = NULL) {
 
   # params = c(1, 1.1,1.1,20,1,0.01,0.1,0,0)   # just here for quick test runs
   set.seed(params[1])
@@ -31,6 +40,11 @@ model_fn <- function(params, start_yr, end_yr,
   # obs_p      <- params[8]
   # obs_p_ndvi <- params[9]
   
+  if (!is.null(rhd_param_names)) {
+    rhd_settings <- set_rhd_params(rhd_settings, rhd_param_names, params[14 + seq_along(rhd_param_names)])
+  }
+  failed <- if (is.null(rhd_target)) c(-5, -5) else c(-5, -5, 5)
+  
   tryCatch({
     tmpdir <- tempfile(tmpdir = tempdir())   # unique path, not yet created
     dir.create(tmpdir, recursive = TRUE)
@@ -48,7 +62,8 @@ model_fn <- function(params, start_yr, end_yr,
       param_list = map_param_list,
       output_dir = hab_folder,
       start_year = start_yr,
-      end_year   = end_yr
+      end_year   = end_yr,
+      study_area = DT_template
       )
     
     # create_detectionP_map(
@@ -78,6 +93,12 @@ model_fn <- function(params, start_yr, end_yr,
       as.character(R_lambda),
       as.character(R_sigma)
     )
+    
+    if (!is.null(rhd_settings)) {
+      rhd_file <- file.path(tmpdir, "rhd_settings.txt")
+      write_rhd_settings(rhd_settings, rhd_file)
+      cmd_args <- c(cmd_args, "-1", rhd_file)   # -1: no fixed random seed
+    }
     
     result <- system2(cmd_args[1], args = cmd_args[-1],
                       stdout = TRUE, stderr = TRUE,
@@ -109,7 +130,7 @@ model_fn <- function(params, start_yr, end_yr,
     if (nrow(merged) == 0 || all(is.na(merged$KAI_obs))) {
       message("No matched rows for params: ", paste(round(params, 4), 
                                                     collapse = ", "))
-      return(c(-5, -5))
+      return(failed)
     }
     
     suppressWarnings({
@@ -131,15 +152,18 @@ model_fn <- function(params, start_yr, end_yr,
     change_term <- median(metrics$r_delta, na.rm = TRUE)
     
     if(is.finite(rmse_term) & is.finite(r_term) & is.finite(change_term)){
-      return(c(r_term, change_term))
+      if (is.null(rhd_target)) return(c(r_term, change_term))
+      rhd_intervals_sim <- rhd_intervals(read_rhd_logs(sim_dir), scale = rhd_target$scale,
+                                         from = rhd_target$from)
+      return(c(r_term, change_term, rhd_interval_distance(rhd_intervals_sim, rhd_target$target)))
     }else{
-      return(c(-5, -5))  
+      return(failed)
     }
     
   }, error = function(e) {
     message("Failed with params: ", paste(round(params, 4), 
                                           collapse = ", "))
     message("Model run failed: ", conditionMessage(e))
-    return(c(-5, -5))
+    return(failed)
   })
 }

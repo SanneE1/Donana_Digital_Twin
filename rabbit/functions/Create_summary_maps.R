@@ -62,11 +62,17 @@ calculate_matrix_statistics <- function(folder_paths, template_raster, confidenc
       r
     }
     
+    # Every simulation (posterior draw) as a separate layer, so that exceedance can be computed
+    # later (e.g. "density >= N in at least X of the draws" in the dashboard)
+    members <- rast(lapply(matrices, to_raster))
+    names(members) <- sprintf("member_%02d", seq_len(n_samples))
+
     results[[base_name]] <- list(
       mean     = to_raster(mean_matrix),
       std      = to_raster(std_matrix),
       lower_ci = to_raster(lower_ci),
-      upper_ci = to_raster(upper_ci)
+      upper_ci = to_raster(upper_ci),
+      members  = members
     )
   }
   

@@ -119,7 +119,18 @@ load_and_format_rasters <- function(files, template_raster,
 
   }
 
-  r <- if(length(r_list) == 1) r_list[[1]] else rast(r_list)
+  # Files on different grids (e.g. kriged temperature from different KrigR runs) cannot be stacked
+  # as they are: then each is first brought to the template grid.
+  r <- if(length(r_list) == 1) r_list[[1]] else tryCatch(rast(r_list), error = function(e){
+    message("Files have different grids; resampling each to the template before stacking")
+    rast(lapply(r_list, function(x){
+      tx <- time(x)
+      if(!same.crs(x, template_raster)) x <- project(x, crs(template_raster))
+      x <- resample(x, template_raster)
+      time(x) <- tx
+      x
+    }))
+  })
 
   if(!same.crs(r, template_raster)){
     r <- project(r, crs(template_raster))
@@ -299,13 +310,22 @@ build_variant_climate_stacks <- function(temp_obs_files,
   list(temp = temp_file, precip = precip_file)
 }
 
-save_population_mean_rasters <- function(pop_maps, out_dir, variant, scenario) {
+# save_members = TRUE also writes one multi-layer GeoTIFF per map with every simulation
+# (posterior draw) as a layer (<variant>_<scenario>_<name>_members.tif), used by the dashboard
+# to show "density >= N in at least X of the draws"
+save_population_mean_rasters <- function(pop_maps, out_dir, variant, scenario, save_members = TRUE) {
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   for (name in names(pop_maps)) {
     mean_rast <- pop_maps[[name]]$mean
     if (is.null(mean_rast)) next
     out_file <- file.path(out_dir, paste0(variant, "_", scenario, "_", name, "_mean.tif"))
     writeRaster(mean_rast, out_file, overwrite = TRUE)
+
+    members_rast <- pop_maps[[name]]$members
+    if (save_members && !is.null(members_rast)) {
+      members_file <- file.path(out_dir, paste0(variant, "_", scenario, "_", name, "_members.tif"))
+      writeRaster(members_rast, members_file, overwrite = TRUE, datatype = "FLT4S")
+    }
   }
 }
 
@@ -476,7 +496,7 @@ load_simulation <- function(out_dir) {
     pop_maps[[map_names[i]]][[stats[i]]] <- terra::rast(tif_files[i])
   }
   # restore the original stat order
-  stat_order <- c("mean", "std", "lower_ci", "upper_ci")
+  stat_order <- c("mean", "std", "lower_ci", "upper_ci", "members")
   pop_maps <- lapply(pop_maps, function(x) x[intersect(stat_order, names(x))])
 
   sim_df <- readr::read_csv(file.path(out_dir, "sim_df.csv"), show_col_types = FALSE) |>
