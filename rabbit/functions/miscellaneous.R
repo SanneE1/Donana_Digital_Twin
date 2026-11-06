@@ -465,6 +465,18 @@ check_time_span_list <- function(raster_list, start_year, end_year,
 }
 
 
+# Stamp a monthly population map with its month, so the date is in the
+# GeoTIFF itself and not only in the file name. terra writes time() as band
+# metadata DATE_TIME (read back by terra::time()); TIFFTAG_DATETIME is the
+# standard TIFF tag that gdalinfo, QGIS etc. show. Mid-month date, so the
+# month cannot shift with a time zone.
+set_map_month <- function(r, year, month) {
+  d <- as.Date(sprintf("%d-%02d-15", as.integer(year), as.integer(month)))
+  terra::time(r) <- rep(d, terra::nlyr(r))
+  terra::metags(r) <- c(TIFFTAG_DATETIME = format(d, "%Y:%m:%d 00:00:00"))
+  r
+}
+
 # Save / load a run_simulation() result (list with $pop_maps and $sim_df).
 # SpatRasters hold external pointers, so saveRDS() produces unusable objects
 # on reload. Rasters are written as GeoTIFFs (one file per map/statistic) and
@@ -474,8 +486,12 @@ save_simulation <- function(sim, out_dir) {
   dir.create(tif_dir, recursive = TRUE, showWarnings = FALSE)
 
   for (map_name in names(sim$pop_maps)) {
+    # map names end in _<year>_<month>, e.g. Rabbit_Population_distribution_2017_1
+    ym <- regmatches(map_name, regexec("_(\\d{4})_(\\d{1,2})$", map_name))[[1]]
     for (stat in names(sim$pop_maps[[map_name]])) {
-      terra::writeRaster(sim$pop_maps[[map_name]][[stat]],
+      r <- sim$pop_maps[[map_name]][[stat]]
+      if (length(ym) == 3) r <- set_map_month(r, ym[2], ym[3])
+      terra::writeRaster(r,
                          file.path(tif_dir, paste0(map_name, "__", stat, ".tif")),
                          overwrite = TRUE)
     }
