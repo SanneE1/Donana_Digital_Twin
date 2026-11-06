@@ -1,7 +1,7 @@
 # Command line of the rabbit model (Pascal program, settings interface 2).
 #
 # Every setting is passed as --name=value (see Pascal_program/model_settings.md):
-#   code defaults < rates file (--rates_file) < --settings files < --name=value
+#   code defaults < rates file (--rates_file) < --name=value
 # Unknown names stop the program. The same helper is used by model_fn(),
 # run_simulation() and the forecasting component, so they all build the call
 # the same way.
