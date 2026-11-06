@@ -220,6 +220,7 @@ rabbit_calibration <- function(
   # Absolute paths so the model still finds its inputs when a parallel
   # worker starts in a working directory other than proj_root.
   demograph_mod_abs            <- normalizePath(demograph_mod)
+  check_rabbit_model(demograph_mod_abs)   # needs the build with named arguments
   rabbit_demographic_rates_abs <- normalizePath(rabbit_demographic_rates)
   obs_transects_abs            <- normalizePath(obs_transects)
   out_dir_clim_abs             <- normalizePath(out_dir_clim)

@@ -91,12 +91,15 @@ run_rhd <- function(inputs, settings, seed = -1,
   dir.create(run_dir)
   on.exit(unlink(run_dir, recursive = TRUE), add = TRUE)
   settings$RHD_log <- 1
-  write_rhd_settings(settings, file.path(run_dir, "rhd_settings.txt"))
 
-  args <- c(run_dir, inputs$start_year, inputs$end_year, normalizePath(rates),
-            inputs$k_file, inputs$k_file, inputs$clim_dir, "0", "0",
-            inputs$dens_opt, inputs$lambda, inputs$sigma, seed, file.path(run_dir, "rhd_settings.txt"))
-  out <- system2(normalizePath(exe), args = as.character(args), stdout = TRUE, stderr = TRUE, timeout = 1800)
+  # Named arguments (rabbit_model_args.R); the RHD settings override the rates file
+  args <- rabbit_model_args(c(
+    list(output_dir = run_dir, start_year = inputs$start_year, end_year = inputs$end_year,
+         rates_file = normalizePath(rates), habitat_folder = inputs$k_file,
+         climate_folder = inputs$clim_dir, dens_opt = round(inputs$dens_opt),
+         lambda = inputs$lambda, sigma = inputs$sigma, seed = seed),
+    settings))
+  out <- system2(normalizePath(exe), args = args, stdout = TRUE, stderr = TRUE, timeout = 1800)
   if (!is.null(attr(out, "status")) && attr(out, "status") != 0) {
     stop("Model run failed: ", paste(tail(out, 5), collapse = "\n"))
   }

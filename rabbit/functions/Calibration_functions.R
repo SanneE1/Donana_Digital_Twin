@@ -2,19 +2,26 @@
 # ABC model
 # ----------------------------------------------------------------------------------------
 
+# The model is called with named arguments (rabbit_model_args.R).
+# params[1] is the seed EasyABC passes; it is also the model's random seed, so a
+# simulation can be repeated.
 # RHD (optional, see rhd_settings.R and rhd_summaries.R):
-#   rhd_settings     named list of RHD settings for the Pascal program (NULL = no settings file,
-#                    i.e. the program's default schedule mode)
+#   rhd_settings     named list of RHD settings for the Pascal program, including RHD_mode
+#                    (NULL = those of the rates file)
 #   rhd_param_names  names of RHD settings calibrated here; their values are params[15], params[16], ...
-#                    A name starting with "log10_" is calibrated on the log10 scale (e.g. log10_RHD_spark)
+#                    "log10_<name>" is calibrated on the log10 scale (e.g. log10_RHD_spark);
+#                    "RHDMort" sets RHDMort_L = RHDMort_U (schedule mode). See model_param_settings().
 #   rhd_target       list(scale = "park" or "cell", target = c(24, 36), from = month index or NULL);
 #                    when given, a third statistic is returned: the distance of the outbreak
 #                    intervals from the target range (rhd_interval_distance), 0 = inside it
+#   return_sim       TRUE: return the simulated and observed KAI per census (for model comparison)
+#                    instead of the summary statistics
 model_fn <- function(params, start_yr, end_yr,
                      Cov_list, DT_template,
                      demograph_mod, rabbit_demographic_rates,
                      obs_transects, obs_df, out_dir_clim,
-                     rhd_settings = NULL, rhd_param_names = NULL, rhd_target = NULL) {
+                     rhd_settings = NULL, rhd_param_names = NULL, rhd_target = NULL,
+                     return_sim = FALSE) {
 
   # params = c(1, 1.1,1.1,20,1,0.01,0.1,0,0)   # just here for quick test runs
   set.seed(params[1])
@@ -40,8 +47,9 @@ model_fn <- function(params, start_yr, end_yr,
   # obs_p      <- params[8]
   # obs_p_ndvi <- params[9]
   
-  if (!is.null(rhd_param_names)) {
-    rhd_settings <- set_rhd_params(rhd_settings, rhd_param_names, params[14 + seq_along(rhd_param_names)])
+  if (length(rhd_param_names) > 0) {
+    rhd_values <- stats::setNames(as.list(params[14 + seq_along(rhd_param_names)]), rhd_param_names)
+    rhd_settings <- utils::modifyList(as.list(rhd_settings), model_param_settings(rhd_values))
   }
   failed <- if (is.null(rhd_target)) c(-5, -5) else c(-5, -5, 5)
   
@@ -78,29 +86,23 @@ model_fn <- function(params, start_yr, end_yr,
     sim_dir <- file.path(tmpdir, "sim")
     dir.create(sim_dir, showWarnings = FALSE)
     
-    cmd_args <- c(
-      demograph_mod,
-      sim_dir,
-      as.character(start_yr),
-      as.character(end_yr),
-      rabbit_demographic_rates,
-      k_file,                     # first habitat map (the Pascal program reads K from the file below)
-      k_file,                     # K maps of all months
-      out_dir_clim,
-      "0",                        # Do not create all monthly maps (only census months)
-      "0",                        # Do not use a starting map, but use carrying capacity map to initiate
-      as.character(dens_opt),
-      as.character(R_lambda),
-      as.character(R_sigma)
-    )
-    
-    if (!is.null(rhd_settings)) {
-      rhd_file <- file.path(tmpdir, "rhd_settings.txt")
-      write_rhd_settings(rhd_settings, rhd_file)
-      cmd_args <- c(cmd_args, "-1", rhd_file)   # -1: no fixed random seed
-    }
-    
-    result <- system2(cmd_args[1], args = cmd_args[-1],
+    # Named arguments: run settings, then the dispersal and RHD settings of this
+    # parameter set (they override the rates file). Only census-month maps; the
+    # population starts at carrying capacity.
+    args <- rabbit_model_args(c(
+      list(output_dir     = sim_dir,
+           start_year     = start_yr,
+           end_year       = end_yr,
+           rates_file     = rabbit_demographic_rates,
+           habitat_folder = k_file,
+           climate_folder = out_dir_clim,
+           seed           = as.integer(params[1]),
+           dens_opt       = dens_opt,
+           lambda         = R_lambda,
+           sigma          = R_sigma),
+      rhd_settings))
+
+    result <- system2(demograph_mod, args = args,
                       stdout = TRUE, stderr = TRUE,
                       timeout = 600)
     
@@ -126,7 +128,9 @@ model_fn <- function(params, start_yr, end_yr,
                         by = c("Fecha", "transect"),
                         suffix = c("_sim", "_obs")) %>%
       arrange(Fecha, transect)
-    
+
+    if (return_sim) return(merged)
+
     if (nrow(merged) == 0 || all(is.na(merged$KAI_obs))) {
       message("No matched rows for params: ", paste(round(params, 4), 
                                                     collapse = ", "))
