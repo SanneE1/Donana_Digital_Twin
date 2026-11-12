@@ -30,8 +30,8 @@ prepare_rhd_inputs <- function(
     template            = file.path("data", "environmental_data", "template_raster_500.tif"),
     temperature_files   = file.path("data", "environmental_data", "temperature_CDS"),
     precipitation_files = file.path("data", "environmental_data", "precipitation_CDS"),
-    ndvi_mean_file      = file.path("data", "environmental_data", "monthly_ndvi_v2", "mean.tif"),
-    ndvi_sd_file        = file.path("data", "environmental_data", "monthly_ndvi_v2", "sd.tif"),
+    ndvi_mean_file      = file.path("data", "environmental_data", "NDVI_large", "harmonised", "mean.tif"),
+    ndvi_sd_file        = file.path("data", "environmental_data", "NDVI_large", "harmonised", "sd.tif"),
     flood_files         = file.path("data", "backcast", "monthly_floodmaps"),
     height_files        = file.path("data", "environmental_data", "vegetation_height", "merged_veg_height_donana_NA_interpolated.tif")
 ){
@@ -47,8 +47,8 @@ prepare_rhd_inputs <- function(
   r_temp   <- window(load_monthly_stack(existing(temperature_files), DT_template, pattern = "\\.nc$"))
   r_precip <- window(load_monthly_stack(existing(precipitation_files), DT_template, pattern = "\\.nc$"))
   start_date <- as.Date(sprintf("%d-01-01", start_year))
-  r_mean <- window(fill_leading_climatology(read_monthly_ndvi(ndvi_mean_file), start_date))
-  r_sd   <- window(fill_leading_climatology(read_monthly_ndvi(ndvi_sd_file), start_date))
+  r_mean <- window(fill_leading_climatology(read_monthly_ndvi(ndvi_mean_file, DT_template), start_date))
+  r_sd   <- window(fill_leading_climatology(read_monthly_ndvi(ndvi_sd_file, DT_template), start_date))
   r_flood  <- load_and_format_rasters(flood_files, DT_template, aggregate = TRUE, fun = "max",
                                       temporal_agg = "month", temporal_fun = "max")
   r_height <- load_and_format_rasters(height_files, DT_template, aggregate = TRUE, fun = "mean")
