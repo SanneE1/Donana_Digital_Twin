@@ -67,6 +67,9 @@ rsconnect/
 # EasyABC writes its step files to the working directory
 model_step*
 n_simul_tot_step*
+output_step*
+p_acc_step*
+tolerance_step*
 
 # Python caches
 __pycache__/
