@@ -16,12 +16,17 @@
 #  so the comparison runs exactly the code that calibrates. Needs the rabbit
 #  model build with named arguments (branch named-model-settings).
 #
-#  Run from the Donana_Digital_Twin folder:  Rscript rabbit/compare_rhd_modes.R [quick]
+#  Run from the Donana_Digital_Twin folder:  Rscript rabbit/compare_rhd_modes.R [quick|small]
 #  The full run takes many hours (6 calibrations with nb_simul = 300, and about
-#  3 x (n_draws x seeds x 2 + n_noise) simulations); "quick" is a smoke test.
+#  3 x (n_draws x seeds x 2 + n_noise) simulations); "small" is a reduced run
+#  (about a quarter of the work, wider intervals) that fits in one night on a
+#  laptop; "quick" is a smoke test only.
 #  Results: out_dir/ (posteriors, simulation scores, summary.csv, decision.txt).
 
-quick <- "quick" %in% commandArgs(trailingOnly = TRUE)
+args  <- commandArgs(trailingOnly = TRUE)
+quick <- "quick" %in% args
+small <- !quick && "small" %in% args
+level <- if (quick) "quick" else if (small) "small" else "full"
 
 # ---- Settings -------------------------------------------------------------------------------
 
@@ -30,7 +35,8 @@ comp_code  <- file.path(components, "donana-rabbit-calibration", "code")
 data       <- file.path(components, "data")
 model_exe  <- normalizePath(file.path("rabbit", "Pascal_program", "programs", "Rabbit_x86_64-win64.exe"))
 rates      <- normalizePath(file.path("data", "rabbit", "Rabbit_demography_values.txt"))
-out_dir    <- file.path("rabbit", "results", if (quick) "rhd_mode_comparison_quick" else "rhd_mode_comparison")
+out_dir    <- file.path("rabbit", "results",
+                        if (level == "full") "rhd_mode_comparison" else paste0("rhd_mode_comparison_", level))
 
 inputs_args <- list(
   template            = file.path(data, "template_raster_500.tif"),
@@ -48,12 +54,16 @@ transects <- normalizePath(file.path(data, "rabbit_census", "Transect_oryctolagu
 modes        <- c("none", "schedule", "immunity")
 start_year   <- 2017
 end_year     <- 2024     # in-sample period end; the held-out calibration ends a year earlier
-nb_simul     <- if (quick) 68 else 300
-p_acc_min    <- if (quick) 0.6 else 0.05
-n_draws      <- if (quick) 4 else 200
-seeds        <- if (quick) 1 else 1:3
-n_noise      <- if (quick) 3 else 50
-n_cluster    <- if (quick) 2 else 4
+#                        quick  small   full
+nb_simul     <- switch(level, quick = 68,  small = 150, full = 300)
+p_acc_min    <- switch(level, quick = 0.6, small = 0.2, full = 0.05)
+n_draws      <- switch(level, quick = 4,   small = 100, full = 200)
+seeds        <- switch(level, quick = 1,   small = 1:2, full = 1:3)
+n_noise      <- switch(level, quick = 3,   small = 20,  full = 50)
+n_cluster    <- switch(level, quick = 2,   small = 3,   full = 4)
+# Workers can override the default:  Rscript rabbit/compare_rhd_modes.R small cores=2
+cores_arg <- grep("^cores=", args, value = TRUE)
+if (length(cores_arg)) n_cluster <- as.integer(sub("^cores=", "", cores_arg[1]))
 n_boot       <- 2000
 
 PARAMS13 <- c("K_max", "ndvi_opt", "ndvi_sigma", "ndvi_sd_opt", "ndvi_sd_sigma", "height_opt",
@@ -67,6 +77,10 @@ suppressPackageStartupMessages({
   library(readr); library(sf); library(EasyABC); library(ggplot2)
 })
 for (f in list.files(comp_code, pattern = "\\.R$", full.names = TRUE)) source(f)
+# rabbit_calibration() reads these globals (set by the component's main.r):
+# the parallel workers source the code from function_dir and start in proj_root
+function_dir <- normalizePath(comp_code, winslash = "/")
+proj_root    <- normalizePath(getwd(), winslash = "/")
 check_rabbit_model(model_exe)
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -278,7 +292,8 @@ msg <- sprintf(paste0("Default RHD mode: %s\n  immunity better than schedule in-
                       "interval excludes 0): %s\n  immunity not worse on the held-out year (scaled error): %s\n",
                       "Settings: nb_simul = %d, p_acc_min = %s, %d draws x %d seeds, %d noise seeds%s\n"),
                decision, better_in, not_worse_out, nb_simul, p_acc_min, n_draws, length(seeds), n_noise,
-               if (quick) "  (QUICK SMOKE TEST: not a valid result)" else "")
+               switch(level, quick = "  (QUICK SMOKE TEST: not a valid result)",
+                      small = "  (SMALL RUN: indicative; confirm with the full run)", full = ""))
 cat("\n", msg)
 writeLines(msg, file.path(out_dir, "decision.txt"))
 unlink(clim_dir, recursive = TRUE)
