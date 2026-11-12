@@ -60,3 +60,13 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Local data (top level; */data/ above only matches subfolders)
+/data/
+
+# EasyABC writes its step files to the working directory
+model_step*
+n_simul_tot_step*
+
+# Python caches
+__pycache__/
