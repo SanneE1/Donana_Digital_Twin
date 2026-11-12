@@ -1,5 +1,5 @@
 
-create_model_rasters <- function(template, ndvi_file, krig_dir, precip_file){
+create_model_rasters <- function(template, ndvi_file, temp_dir, precip_dir){
   
   # NDVI data --------------------------------------------------------------------
   cat('using uncleaned ndvi data right now!!!')
@@ -26,7 +26,7 @@ create_model_rasters <- function(template, ndvi_file, krig_dir, precip_file){
   
   # temperature-------------------------------------------------------------------
   
-  temp_files = list.files(krig_dir, pattern = "Kriged.nc$", full.names = T)
+  temp_files = list.files(temp_dir, pattern = "\\.nc$", full.names = T)
   temp_stack = lapply(temp_files, rast) %>% rast(.)
   temp_stack = project(temp_stack, crs(template))
   temp_stack = resample(temp_stack, template, method = "bilinear")
@@ -35,7 +35,7 @@ create_model_rasters <- function(template, ndvi_file, krig_dir, precip_file){
   
   # Precipitation -------------------------------------------------------------------
   
-  precip_stack = rast(precip_file)
+  precip_stack = rast(list.files(precip_dir, pattern = "\\.nc$", full.names = T))
   precip_stack = project(precip_stack, crs(template))
   precip_stack = resample(precip_stack, template, method = "bilinear")
   

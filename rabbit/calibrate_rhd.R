@@ -28,10 +28,8 @@ prepare_rhd_inputs <- function(
     posterior_file      = file.path("rabbit", "results", "posterior_samples.csv"),
     posterior_row       = NULL,     # NULL = the row with the highest weight
     template            = file.path("data", "environmental_data", "template_raster_500.tif"),
-    temperature_files   = c(file.path("data", "environmental_data", "CDS", "kriged_temperature_v2"),
-                            file.path("data", "backcast", "CDS", "kriged_temperature")),
-    precipitation_files = c(file.path("data", "environmental_data", "CDS", "precipitation", "precipitation.nc"),
-                            file.path("data", "backcast", "CDS", "precipitation")),
+    temperature_files   = file.path("data", "environmental_data", "temperature_CDS"),
+    precipitation_files = file.path("data", "environmental_data", "precipitation_CDS"),
     ndvi_mean_file      = file.path("data", "environmental_data", "monthly_ndvi_v2", "mean.tif"),
     ndvi_sd_file        = file.path("data", "environmental_data", "monthly_ndvi_v2", "sd.tif"),
     flood_files         = file.path("data", "backcast", "monthly_floodmaps"),
@@ -46,7 +44,7 @@ prepare_rhd_inputs <- function(
   }
   existing <- function(paths) paths[file.exists(paths)]
 
-  r_temp   <- window(load_monthly_stack(existing(temperature_files), DT_template, pattern = "_Kriged\\.nc$"))
+  r_temp   <- window(load_monthly_stack(existing(temperature_files), DT_template, pattern = "\\.nc$"))
   r_precip <- window(load_monthly_stack(existing(precipitation_files), DT_template, pattern = "\\.nc$"))
   start_date <- as.Date(sprintf("%d-01-01", start_year))
   r_mean <- window(fill_leading_climatology(read_monthly_ndvi(ndvi_mean_file), start_date))
