@@ -157,7 +157,9 @@ load_and_format_rasters <- function(files, template_raster,
   r <- resample(r, template_raster)
 
   gc()
-  suppressWarnings(terra::tmpFiles(remove = TRUE))
+  # No terra::tmpFiles(remove = TRUE) here: it deletes all temporary files of the session, including
+  # the one that holds r when terra keeps a large stack on disk (and those of rasters loaded
+  # before). terra removes its temporary files at the end of the R session.
 
   return(r)
 }
