@@ -1,3 +1,6 @@
 [submodule "rabbit/Pascal_program"]
 	path = rabbit/Pascal_program
 	url = https://github.com/SanneE1/RabbitIBMProgram.git
+[submodule "lynx/Pascal_program"]
+	path = lynx/Pascal_program
+	url = https://github.com/SanneE1/LynxIBMProgram.git

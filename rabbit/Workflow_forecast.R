@@ -10,10 +10,11 @@ function(
     rabbit_demographic_rates = file.path("rabbit", "output_data", "Rabbit_demography_values.txt"),
     demograph_mod            = file.path("rabbit", "Pascal_program", "programs", "Rabbit_x86_64-win64.exe"),
     
-    temperature_files        = file.path("data", "environmental_data", "CDS", "kriged_temperature"),
+    temperature_files        = file.path("data", "environmental_data", "temperature_CDS"),
     is_Kelvin                = T,
-    precipitation_files      = file.path("data", "environmental_data", "CDS", "precipitation.nc"),
-    ndvi_files               = list.files(file.path("data", "environmental_data", "NDVI"), full.names = T),
+    precipitation_files      = file.path("data", "environmental_data", "precipitation_CDS"),
+    ndvi_mean_file               = file.path("data", "environmental_data", "NDVI_large", "harmonised", "mean.tif"),
+    ndvi_sd_file                 = file.path("data", "environmental_data", "NDVI_large", "harmonised", "sd.tif"),
     flood_files              = file.path("data", "environmental_data", "LAST_monthly_floodmaps"),
     height_files             = file.path("data", "environmental_data", "vegetation_height", "merged_veg_height_donana_NA_interpolated.tif"),
     
@@ -28,9 +29,9 @@ function(
   # obs_df                   = file.path("data", "rabbit", "Doñana_census_data_PacoCarro", "KAI_Rabbit_Night_2024_v1.csv")
   # rabbit_demographic_rates = file.path("rabbit", "output_data", "Rabbit_demography_values.txt")
   # demograph_mod            = file.path("rabbit", "Pascal_program", "programs", "Rabbit_x86_64-win64.exe")
-  # temperature_files        = file.path("data", "environmental_data", "CDS", "kriged_temperature")
+  # temperature_files        = file.path("data", "environmental_data", "temperature_CDS")
   # is_Kelvin                = T
-  # precipitation_files      = file.path("data", "environmental_data", "CDS", "precipitation.nc")
+  # precipitation_files      = file.path("data", "environmental_data", "precipitation_CDS")
   # ndvi_files               = list.files(file.path("data", "environmental_data", "NDVI"), full.names = T)[c(1:3)]
   # flood_files              = file.path("data", "environmental_data", "LAST_monthly_floodmaps")
   # height_files             = file.path("data", "environmental_data", "vegetation_height", "merged_veg_height_donana_NA_interpolated.tif")
@@ -102,8 +103,9 @@ function(
   
   r_temp   = load_and_format_rasters(temperature_files, DT_template)
   r_precip = load_and_format_rasters(precipitation_files, DT_template)
-  r_mean_ndvi   = load_and_format_rasters(ndvi_files, DT_template, aggregate = T, fun = "mean")
-  r_sd_ndvi     = load_and_format_rasters(ndvi_files, DT_template, aggregate = T, fun = "sd")
+  # NDVI mean and within-cell SD: monthly 500 m products (NDVI_large/harmonised), cut to the template
+  r_mean_ndvi   = load_and_format_rasters(ndvi_mean_file, DT_template)
+  r_sd_ndvi     = load_and_format_rasters(ndvi_sd_file, DT_template)
   r_flood       = load_and_format_rasters(flood_files, DT_template)
   r_height      = load_and_format_rasters(height_files, DT_template, aggregate = T, fun = "mean")
   

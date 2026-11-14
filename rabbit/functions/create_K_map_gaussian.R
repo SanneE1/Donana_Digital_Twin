@@ -7,9 +7,13 @@
 #                    and returns output_dir.
 # Cov_list can also be the result of prepare_K_covariates(), which saves repeating that step
 # when many parameter sets are run on the same covariates.
+# study_area: raster on the same grid as the covariates (e.g. the template), NA outside the study
+# area. When given, any cell inside it without NDVI mean/SD in a month is an error: such cells
+# would otherwise silently get K = 0 (fill the gaps first, see build_monthly_ndvi()).
 create_K_map_gaussian <- function(Cov_list, param_list,
                                   output_dir,
                                   start_year, end_year,
+                                  study_area = NULL,
                                   plot_K = F,
                                   format = c("binary", "text")) {
 
@@ -20,6 +24,21 @@ create_K_map_gaussian <- function(Cov_list, param_list,
   months_missing <- which(colSums(!is.na(cov$ndvi_mean)) == 0 | colSums(!is.na(cov$ndvi_sd)) == 0)
   if (length(months_missing) > 0) {
     stop("No NDVI mean/SD layer for month(s): ", paste(cov$months[months_missing], collapse = ", "))
+  }
+
+  if (!is.null(study_area)) {
+    inside <- !is.na(terra::values(study_area[[1]], mat = FALSE))
+    if (length(inside) != nrow(cov$ndvi_mean)) {
+      stop("study_area does not have the same number of cells as the covariates")
+    }
+    n_gaps <- colSums(is.na(cov$ndvi_mean[inside, , drop = FALSE]) | is.na(cov$ndvi_sd[inside, , drop = FALSE]))
+    if (any(n_gaps > 0)) {
+      gaps <- which(n_gaps > 0)
+      stop("Cells inside the study area without NDVI mean/SD (they would get K = 0) in ",
+           length(gaps), " month(s): ",
+           paste0(cov$months[gaps], " (", n_gaps[gaps], " cells)", collapse = ", "),
+           ". Fill the gaps first, e.g. with build_monthly_ndvi().")
+    }
   }
 
   # Each covariate contributes a suitability index in [0, 1], peaking at its optimum;

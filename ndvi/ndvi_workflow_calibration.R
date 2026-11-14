@@ -25,8 +25,8 @@ pred_dir = file.path(output_dir, "predictions")
 
 ndvi_path = file.path(env_dir, "NDVI")
 template_path = file.path(env_dir, "template_raster_500.tif")
-krig_path = file.path(env_dir, "CDS", "kriged_temperature")
-precip_path = file.path(env_dir, "CDS", "precipitation.nc")
+temp_path = file.path(env_dir, "temperature_CDS")
+precip_path = file.path(env_dir, "precipitation_CDS")
 
 sapply(list.files(file.path("ndvi", "functions"), full.names = T), source)
 
@@ -42,8 +42,8 @@ ndvi_files <- list.files(ndvi_path, full.names = T)
 
 rast_list <- create_model_rasters(template = template_rast, 
                                   ndvi_file = ndvi_files, 
-                                  krig_dir = krig_path, 
-                                  precip_file = precip_path)
+                                  temp_dir = temp_path, 
+                                  precip_dir = precip_path)
 
 model_data <- create_model_dataframe(ndvi_stack = rast_list$ndvi_stack, 
                                      ndvi_auto_max3 = rast_list$ndvi_neighbour, 

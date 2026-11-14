@@ -10,7 +10,7 @@ dem_path = file.path(data_dir, "Copernicus_GLO90_Europe_250m.tif")
 # load functions----------------------------------------------------------------
 # this file just assigns two objects: API_User and API_Key but stored in data to keep it private
 source(file.path(data_dir, "CDS_API_info.R"))
-source(file.path("environmental_data", "functions", "Download_and_Krig_temperature.R"))
+source(file.path("environmental_data", "functions", "download_era5land_climate.R"))
 
 
 #-------------------------------------------------------------------------------
@@ -34,24 +34,14 @@ writeRaster(DT_template, template_path,
             overwrite = TRUE, NAflag = -9999)
 
 #-------------------------------------------------------------------------------
-# Download and Krig temperature data
+# Temperature and precipitation: ERA5-Land monthly means, 1984 to now
 #-------------------------------------------------------------------------------
 
-download_and_krig_temp(template_path = template_path, dem_path = dem_path, 
-                       output_dir = file.path(data_dir, "CDS"))
+# Native 0.1 degree grid (no downscaling), one file per variable and year in
+# data/environmental_data/<variable>_CDS; only missing or incomplete years are
+# downloaded. Covers the large (lynx) template, and with it the park.
+source(file.path("environmental_data", "download_climate.R"))
 
-
-#-------------------------------------------------------------------------------
-# Download precipitation data
-#-------------------------------------------------------------------------------
-
-cat('still need to figure out how to do this only for the months not yet downloaded')
-
-if(!file.exists(file.path(data_dir, "CDS", "precipitation.grib"))){
-  cat('downloading precipitation data - this might take a while')
-  # use_python("C:/Users/z1512834z/AppData/Local/Programs/Python/Python314/python.exe")
-  source_python('environmental_data/functions/download_precipitation_CDS.py')
-}
 
 #-------------------------------------------------------------------------------
 # Download and clean NDVI

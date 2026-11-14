@@ -119,7 +119,18 @@ load_and_format_rasters <- function(files, template_raster,
 
   }
 
-  r <- if(length(r_list) == 1) r_list[[1]] else rast(r_list)
+  # Files on different grids (e.g. kriged temperature from different KrigR runs) cannot be stacked
+  # as they are: then each is first brought to the template grid.
+  r <- if(length(r_list) == 1) r_list[[1]] else tryCatch(rast(r_list), error = function(e){
+    message("Files have different grids; resampling each to the template before stacking")
+    rast(lapply(r_list, function(x){
+      tx <- time(x)
+      if(!same.crs(x, template_raster)) x <- project(x, crs(template_raster))
+      x <- resample(x, template_raster)
+      time(x) <- tx
+      x
+    }))
+  })
 
   if(!same.crs(r, template_raster)){
     r <- project(r, crs(template_raster))
@@ -146,7 +157,9 @@ load_and_format_rasters <- function(files, template_raster,
   r <- resample(r, template_raster)
 
   gc()
-  suppressWarnings(terra::tmpFiles(remove = TRUE))
+  # No terra::tmpFiles(remove = TRUE) here: it deletes all temporary files of the session, including
+  # the one that holds r when terra keeps a large stack on disk (and those of rasters loaded
+  # before). terra removes its temporary files at the end of the R session.
 
   return(r)
 }
@@ -299,13 +312,22 @@ build_variant_climate_stacks <- function(temp_obs_files,
   list(temp = temp_file, precip = precip_file)
 }
 
-save_population_mean_rasters <- function(pop_maps, out_dir, variant, scenario) {
+# save_members = TRUE also writes one multi-layer GeoTIFF per map with every simulation
+# (posterior draw) as a layer (<variant>_<scenario>_<name>_members.tif), used by the dashboard
+# to show "density >= N in at least X of the draws"
+save_population_mean_rasters <- function(pop_maps, out_dir, variant, scenario, save_members = TRUE) {
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   for (name in names(pop_maps)) {
     mean_rast <- pop_maps[[name]]$mean
     if (is.null(mean_rast)) next
     out_file <- file.path(out_dir, paste0(variant, "_", scenario, "_", name, "_mean.tif"))
     writeRaster(mean_rast, out_file, overwrite = TRUE)
+
+    members_rast <- pop_maps[[name]]$members
+    if (save_members && !is.null(members_rast)) {
+      members_file <- file.path(out_dir, paste0(variant, "_", scenario, "_", name, "_members.tif"))
+      writeRaster(members_rast, members_file, overwrite = TRUE, datatype = "FLT4S")
+    }
   }
 }
 
@@ -445,6 +467,18 @@ check_time_span_list <- function(raster_list, start_year, end_year,
 }
 
 
+# Stamp a monthly population map with its month, so the date is in the
+# GeoTIFF itself and not only in the file name. terra writes time() as band
+# metadata DATE_TIME (read back by terra::time()); TIFFTAG_DATETIME is the
+# standard TIFF tag that gdalinfo, QGIS etc. show. Mid-month date, so the
+# month cannot shift with a time zone.
+set_map_month <- function(r, year, month) {
+  d <- as.Date(sprintf("%d-%02d-15", as.integer(year), as.integer(month)))
+  terra::time(r) <- rep(d, terra::nlyr(r))
+  terra::metags(r) <- c(TIFFTAG_DATETIME = format(d, "%Y:%m:%d 00:00:00"))
+  r
+}
+
 # Save / load a run_simulation() result (list with $pop_maps and $sim_df).
 # SpatRasters hold external pointers, so saveRDS() produces unusable objects
 # on reload. Rasters are written as GeoTIFFs (one file per map/statistic) and
@@ -454,8 +488,12 @@ save_simulation <- function(sim, out_dir) {
   dir.create(tif_dir, recursive = TRUE, showWarnings = FALSE)
 
   for (map_name in names(sim$pop_maps)) {
+    # map names end in _<year>_<month>, e.g. Rabbit_Population_distribution_2017_1
+    ym <- regmatches(map_name, regexec("_(\\d{4})_(\\d{1,2})$", map_name))[[1]]
     for (stat in names(sim$pop_maps[[map_name]])) {
-      terra::writeRaster(sim$pop_maps[[map_name]][[stat]],
+      r <- sim$pop_maps[[map_name]][[stat]]
+      if (length(ym) == 3) r <- set_map_month(r, ym[2], ym[3])
+      terra::writeRaster(r,
                          file.path(tif_dir, paste0(map_name, "__", stat, ".tif")),
                          overwrite = TRUE)
     }
@@ -476,7 +514,7 @@ load_simulation <- function(out_dir) {
     pop_maps[[map_names[i]]][[stats[i]]] <- terra::rast(tif_files[i])
   }
   # restore the original stat order
-  stat_order <- c("mean", "std", "lower_ci", "upper_ci")
+  stat_order <- c("mean", "std", "lower_ci", "upper_ci", "members")
   pop_maps <- lapply(pop_maps, function(x) x[intersect(stat_order, names(x))])
 
   sim_df <- readr::read_csv(file.path(out_dir, "sim_df.csv"), show_col_types = FALSE) |>

@@ -2,8 +2,8 @@
 #   template        = file.path("data", "environmental_data", "template_raster_500.tif"),
 #   obs_df          = file.path("data", "rabbit", "Doñana_census_data_PacoCarro", "KAI_Rabbit_Night_2024_v1.csv"),
 #   covariate_files = list(
-#     temperature_files   = file.path("data", "environmental_data", "CDS", "kriged_temperature"),
-#     precipitation_files = file.path("data", "environmental_data", "CDS", "precipitation.nc"),
+#     temperature_files   = file.path("data", "environmental_data", "temperature_CDS"),
+#     precipitation_files = file.path("data", "environmental_data", "precipitation_CDS"),
 #     ndvi_files           = list.files(file.path("data", "environmental_data", "NDVI"), full.names = T),
 #     flood_files          = file.path("data", "environmental_data", "LAST_monthly_floodmaps"),
 #     height_files         = file.path("data", "environmental_data", "vegetation_height", "merged_veg_height_donana_NA_interpolated.tif")
