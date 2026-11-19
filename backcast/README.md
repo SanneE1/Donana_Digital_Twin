@@ -24,7 +24,7 @@ Run everything from the project root; `rabbit_backcast()` is defined in `Workflo
 `../Components`: `donana-rabbit-calibration` on the park (cut out of the large inputs), simulated
 from 1985 so that the RHD arrival dates (1990, 2012) take effect and fitted to the census
 2005-2024, and `donana-rabbit-forecasting` with the observed NDVI and climate
-(`useNdviForecast = FALSE`, `useClimateForecast = FALSE`) over the large template, 1985 spin-up,
+(covariate folders without climate-scenario subfolders, so observed NDVI and climate) over the large template, 1985 spin-up,
 1986-01 to 2025-12.
 
 ```

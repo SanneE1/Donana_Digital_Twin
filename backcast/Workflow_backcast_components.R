@@ -7,8 +7,8 @@
 #                               from 1985 so that the RHD arrival dates (1990, 2012) take effect,
 #                               fitted to the park census 2005-2024
 #   donana-rabbit-forecasting   the backcast: the posterior of the calibration run over the large
-#                               template with the observed NDVI and climate (useNdviForecast and
-#                               useClimateForecast FALSE), 1985 spin-up, 1986-01 to 2025-12
+#                               template with the observed NDVI and climate (covariate folders
+#                               without climate-scenario subfolders), 1985 spin-up, 1986-01 to 2025-12
 #
 # Steps (each skips what is already on disk; force = TRUE redoes it):
 #   climate      ERA5-Land monthly temperature and precipitation (native 0.1 degree grid, no
@@ -25,6 +25,13 @@
 #   calibration  runs donana-rabbit-calibration -> data/backcast/rabbit_backcast_1985/calibration
 #   forecast     runs donana-rabbit-forecasting -> data/backcast/rabbit_backcast_1985/backcast,
 #                plus the mean density over the runs, park/outside totals and the census agreement
+#   lynx_hindcast  the rabbit maps the lynx calibration needs: donana-rabbit-forecasting on the large
+#                template with the calibration's posterior, observed drivers, 5 spin-up years
+#                (2000-2004) and maps from 2005-01 -> rabbit_backcast_1985/lynx_hindcast, with the
+#                runs' maps also as pop_maps/runs/run_<k>/<map>_<yyyy>_<m>.tif + run_draws.csv
+#   lynx_maps    spatial-projection on those maps (map series 2005-01 to 2025-12, scaled to the
+#                park census) -> rabbit_backcast_1985/lynx_rabbit_maps/map_series, the rabbitDensity
+#                input of donana-lynx-calibration (rabbitMaps = runs or mean)
 #
 # Run from the Donana_Digital_Twin project root:
 #   Rscript backcast/Workflow_backcast_components.R                       # all steps
@@ -40,7 +47,7 @@ suppressPackageStartupMessages({
 })
 
 steps <- commandArgs(trailingOnly = TRUE)
-all_steps <- c("climate", "ndvi", "flood", "inputs", "calibration", "forecast")
+all_steps <- c("climate", "ndvi", "flood", "inputs", "calibration", "forecast", "lynx_hindcast", "lynx_maps")
 if (length(steps) == 0) steps <- all_steps
 if (!all(steps %in% all_steps)) stop("Unknown step(s): ", paste(setdiff(steps, all_steps), collapse = ", "),
                                      ". Steps: ", paste(all_steps, collapse = ", "))
@@ -56,12 +63,23 @@ last_month  <- as.Date("2025-12-01")
 # Calibration from 2003: two years before the census (2005-2024). RHD1 (1990) is then already
 # present at the start (the model starts with the disease and part of the rabbits immune); RHD2
 # (2012) arrives during the run.
+# K_max fixed at 40 and no level statistic (2026-11-19): the census KAI is a relative index and
+# the lynx maps are scaled to the census (lynx_maps), so only the pattern and dynamics are fitted.
+# nb_simul 150 for a first run with the corrected summary-statistic targets (300 before).
 calibration <- list(start_year = 2003, end_year = 2024,
-                    nb_simul = 300, p_acc_min = 0.05, n_sim_samples = 20, n_cluster = 2,
-                    rhdMode = "immunity")
+                    nb_simul = 150, p_acc_min = 0.05, n_sim_samples = 20, n_cluster = 2,
+                    rhdMode = "immunity", kMax = 40, levelStatistic = FALSE)
 backcast    <- list(startDate = "1986-01", spinupYears = 1, horizon = "",   # empty: to 2025-12
-                    nRuns = 10, n_cluster = 2, uncertaintySources = "parameters,demographic",
+                    nRuns = 10, n_cluster = 2,
                     rhdMode = "immunity")
+# Rabbit maps for the lynx calibration (lynx years 2006-2024 use the rabbits of June of the year
+# before to May): maps from 2005-01, after 5 spin-up years
+lynx_hindcast <- list(startDate = "2005-01", spinupYears = 5, horizon = "",   # empty: to 2025-12
+                      nRuns = 20, n_cluster = 2,
+                      rhdMode = "immunity")
+# maxRatio 10 (2026-11-19): with the default 100 the transects with an observed 0 gave extreme ratios
+# and a sill of 2-9, so the random field put cells far above their carrying capacity
+lynx_maps     <- list(startDate = "2005-01", endDate = "2025-12", nFieldDraws = 1, maxRatio = 10)
 # RHD arrivals, the same in both components (their defaults)
 rhd_arrivals <- list(rhd1ArrivalYear = 1990, rhd1ArrivalMonth = 1, rhd2ArrivalYear = 2012, rhd2ArrivalMonth = 1)
 
@@ -95,9 +113,19 @@ out_dir    <- file.path("data", "backcast", "rabbit_backcast_1985")
 if (nzchar(Sys.getenv("BACKCAST_SMOKE"))) {
   calibration[c("nb_simul", "p_acc_min", "n_sim_samples")] <- list(68, 0.2, 5)
   backcast$nRuns <- 2
+  lynx_hindcast$nRuns <- 2
   work_dir <- file.path("data", "backcast", "components_smoke")
   out_dir  <- paste0(out_dir, "_smoke")
   cat("SMOKE TEST: outputs in", out_dir, "\n")
+}
+# BACKCAST_TAG=<tag>: outputs (and sandboxes) in rabbit_backcast_1985_<tag> / components_<tag>, so a
+# test run does not overwrite the posterior and maps the lynx components use; the inputs are shared
+tag <- Sys.getenv("BACKCAST_TAG")
+if (nzchar(tag)) {
+  work_dir <- paste0(work_dir, "_", tag)
+  out_dir  <- paste0(out_dir, "_", tag)
+  cat("TAG", tag, ": outputs in", out_dir, "
+")
 }
 dir.create(work_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -332,7 +360,7 @@ if ("forecast" %in% steps) {
                    posteriorSamples = list(from = posterior_file, to = "posterior_samples.csv")))
   sandbox <- stage_component(file.path(work_dir, "forecasting"), inputs)
   params <- c(backcast, rhd_arrivals,
-              list(useNdviForecast = "FALSE", useClimateForecast = "FALSE", runMaps = "TRUE"))
+              list(runMaps = "TRUE"))
   params <- params[vapply(params, function(p) nzchar(as.character(p)), logical(1))]
   outputs <- run_component("donana-rabbit-forecasting", sandbox, params)
   bc_dir <- file.path(out_dir, "backcast")
@@ -365,4 +393,73 @@ if ("forecast" %in% steps) {
     summarise(n = n(), spearman = suppressWarnings(cor(KAI_sim, KAI_obs, method = "spearman")), .groups = "drop")
   write_csv(agree, file.path(out_dir, "agreement_with_census.csv"))
   print(agree)
+}
+
+#-------------------------------------------------------------------------------
+# 7. Rabbit maps for the lynx calibration (large template, 2000-2025)
+#-------------------------------------------------------------------------------
+
+lynx_hindcast_dir <- file.path(out_dir, "lynx_hindcast")
+
+if ("lynx_hindcast" %in% steps) {
+  step_header("Lynx rabbit maps (1): donana-rabbit-forecasting on the large template, maps from 2005")
+  if (!file.exists(posterior_file)) stop("No posterior yet: run the calibration step first (", posterior_file, ")")
+  inputs <- c(common_inputs(inputs_large, large_template_file),
+              list(PrecipDir        = list(from = file.path(inputs_large, "precipitation"), to = ""),
+                   posteriorSamples = list(from = posterior_file, to = "posterior_samples.csv")))
+  sandbox <- stage_component(file.path(work_dir, "lynx_hindcast"), inputs)
+  params <- c(lynx_hindcast, rhd_arrivals,
+              list(runMaps = "TRUE"))
+  params <- params[vapply(params, function(p) nzchar(as.character(p)), logical(1))]
+  outputs <- run_component("donana-rabbit-forecasting", sandbox, params)
+  unlink(lynx_hindcast_dir, recursive = TRUE)
+  copy_outputs(outputs, lynx_hindcast_dir)
+
+  # The runs' maps in the layout of the rabbit calibration's pop_maps/ (one file per month,
+  # run_draws.csv with the posterior row of each run), as spatial-projection reads them;
+  # only the months from startDate (the spin-up years are left out)
+  run_table <- read_csv(file.path(lynx_hindcast_dir, "forecast_kai_runs.csv"), show_col_types = FALSE) %>%
+    distinct(run, posterior_row)
+  run_files <- list.files(file.path(lynx_hindcast_dir, "run_density_maps"),
+                          pattern = "^rabbit_density_run_\\d+\\.tif$", full.names = TRUE)
+  run_ids <- as.integer(sub("^.*_(\\d+)\\.tif$", "\\1", run_files))
+  runs_dir <- file.path(lynx_hindcast_dir, "pop_maps", "runs")
+  first <- as.Date(paste0(lynx_hindcast$startDate, "-01"))
+  width <- max(2, nchar(length(run_files)))
+  for (i in seq_along(run_files)) {
+    r <- rast(run_files[i])
+    d <- as.Date(time(r))
+    run_dir <- file.path(runs_dir, sprintf(paste0("run_%0", width, "d"), i))
+    dir.create(run_dir, recursive = TRUE, showWarnings = FALSE)
+    for (k in which(d >= first)) {
+      lyr <- r[[k]]
+      names(lyr) <- "population"
+      time(lyr) <- d[k]
+      writeRaster(lyr, file.path(run_dir, sprintf("Rabbit_Population_distribution_%d_%d.tif", year(d[k]), month(d[k]))),
+                  overwrite = TRUE, gdal = "COMPRESS=DEFLATE")
+    }
+  }
+  write_csv(data.frame(run = seq_along(run_files),
+                       posterior_row = run_table$posterior_row[match(run_ids, run_table$run)],
+                       forecast_run = run_ids),
+            file.path(runs_dir, "run_draws.csv"))
+  cat(length(run_files), "runs written to", runs_dir, "\n")
+}
+
+if ("lynx_maps" %in% steps) {
+  step_header("Lynx rabbit maps (2): spatial-projection, map series scaled to the park census")
+  pop_maps_dir <- file.path(lynx_hindcast_dir, "pop_maps")
+  if (!dir.exists(file.path(pop_maps_dir, "runs"))) stop("Run the lynx_hindcast step first (", pop_maps_dir, ")")
+  # The census of 2025 (to September 2025); popMaps is a folder tree (pop_maps/runs/run_<k>/),
+  # which stage_component() does not copy, so it is added afterwards
+  sandbox <- stage_component(file.path(work_dir, "lynx_maps"), list(
+    census    = list(from = file.path(census_dir, "KAI_Rabbit_Night_2025_v1.csv"), to = "census.csv"),
+    transects = list(from = transect_file, to = "transects.kml")))
+  pop_in <- file.path(sandbox, "mnt", "inputs", "popMaps")
+  dir.create(pop_in, recursive = TRUE)
+  stopifnot(file.copy(pop_maps_dir, pop_in, recursive = TRUE))
+  outputs <- run_component("spatial-projection", sandbox, lynx_maps)
+  maps_out <- file.path(out_dir, "lynx_rabbit_maps")
+  unlink(maps_out, recursive = TRUE)
+  copy_outputs(outputs, maps_out)
 }
