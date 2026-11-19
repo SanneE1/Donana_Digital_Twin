@@ -11,7 +11,7 @@
 #       cells; no 2019), cropped to the large template (+ 5 km)
 #   data/lynx/Lynx_demography_values_donana.txt
 #       the PVA rates (Lynx_demography_values_correctedIPM.txt: min_rep_age 2, BOM removed);
-#       survival, Tsize, rep_prob and surv_disp_rho are calibrated
+#       outside-park survival = Doñana survival; Tsize and surv_disp_rho are calibrated
 #
 # Run from the Donana_Digital_Twin project root.
 
@@ -54,4 +54,9 @@ rates[1] <- sub("^\ufeff", "", rates[1])
 # 0-21; age 22 crashed the IBM)
 rates <- trimws(rates)
 rates[startsWith(rates, "max_age ")] <- "max_age 15"
+# Lynx born outside the park (survival column 0, "Other") get the Doñana survival (column 2) at
+# every age: calibrated separately the two came out about equal, and the PVA's "Other" values
+# (0.874 from age 2) were rough estimates for the whole peninsula (decision 2026-11-19)
+i_surv <- grep("^surv_[0-9]+ ", rates)
+rates[i_surv] <- vapply(strsplit(rates[i_surv], " +"), function(s) { s[2] <- s[4]; paste(s, collapse = " ") }, "")
 writeLines(rates, file.path(out, "Lynx_demography_values_donana.txt"))
